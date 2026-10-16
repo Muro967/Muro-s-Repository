@@ -1,0 +1,786 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>AI衣橱 草图</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Noto+Serif+SC:wght@500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: a single phone frame (390pt) on a muted studio wall, with a screen index beside it on wide screens. Single deliberate light Morandi theme. */
+:root{
+  color-scheme: light;
+  --wall:#DCD5CB;      /* backdrop behind the phone */
+  --paper:#F2EEE8;     /* app background */
+  --card:#FBF9F6;
+  --ink:#3E3A36;
+  --ink-2:#857D75;
+  --line:#E4DDD3;
+  --sage:#9CAA97;  --sage-d:#6E7B6A;
+  --rose:#C9A8A1;  --rose-l:#EBDCD7;
+  --mist:#A4B4BE;  --mist-l:#DCE3E7;
+  --clay:#B8977F;  --oat:#E8E0D4;
+  --butter:#D9C9A3;
+  --serif:"Noto Serif SC","Songti SC",serif;
+  --sans:"Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --latin:"Cormorant Garamond","Times New Roman",serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--wall);color:var(--ink);font-family:var(--sans);margin:0}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+button:focus-visible{outline:2px solid var(--sage-d);outline-offset:2px;border-radius:8px}
+
+.stage{min-height:100%;display:flex;gap:40px;justify-content:center;align-items:flex-start;padding:32px 16px}
+.index{width:260px;flex:none;position:sticky;top:32px}
+.index h1{font-family:var(--serif);font-weight:600;font-size:22px;margin:0 0 4px}
+.index .sub{color:var(--ink-2);font-size:13px;line-height:1.6;margin:0 0 20px}
+.index ol{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.index li button{width:100%;text-align:left;padding:10px 12px;border-radius:12px;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+.index li button[aria-current="true"]{background:var(--card)}
+.index li span{color:var(--ink-2);font-size:12px}
+.note{margin-top:20px;padding:14px;border-radius:14px;background:rgba(251,249,246,.55);font-size:12.5px;line-height:1.7;color:var(--ink-2)}
+.note b{color:var(--ink);font-weight:500}
+.swatches{display:flex;gap:6px;margin-top:10px}
+.swatches i{width:22px;height:22px;border-radius:50%;display:block}
+
+.phone{width:390px;height:844px;flex:none;border-radius:48px;background:var(--paper);position:relative;overflow:hidden;box-shadow:0 0 0 10px #2f2c29,0 30px 60px rgba(60,50,40,.25)}
+.statusbar{height:47px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 30px 6px;font-size:14px;font-weight:500;position:relative;z-index:3}
+.screen{position:absolute;inset:47px 0 0 0;overflow-y:auto;padding:4px 20px 110px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.screen.sub{padding-bottom:40px}
+
+.tabbar{position:absolute;left:14px;right:14px;bottom:22px;height:64px;border-radius:32px;background:rgba(251,249,246,.92);backdrop-filter:blur(10px);display:grid;grid-template-columns:repeat(4,1fr);box-shadow:0 6px 24px rgba(80,70,60,.12);z-index:4}
+.tabbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;color:var(--ink-2)}
+.tabbar button svg{width:22px;height:22px}
+.tabbar button[aria-current="true"]{color:var(--sage-d);font-weight:500}
+.tabbar button[aria-current="true"] .dot{opacity:1}
+.tabbar .dot{width:4px;height:4px;border-radius:50%;background:var(--sage-d);opacity:0}
+
+/* shared app components */
+.top{display:flex;justify-content:space-between;align-items:center;margin:8px 0 14px}
+.brand{font-family:var(--latin);font-style:italic;font-size:30px;line-height:1;color:var(--ink)}
+.brand em{color:var(--clay);font-style:italic}
+.brand small{display:block;font-family:var(--serif);font-style:normal;font-size:13px;letter-spacing:.18em;color:var(--ink-2);margin-top:8px}
+.icon-btn{width:38px;height:38px;border-radius:50%;background:var(--card);display:grid;place-items:center}
+.icon-btn svg{width:18px;height:18px}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:7px 14px;border-radius:999px;background:var(--card);font-size:13px;color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--sage-d);color:#FBF9F6}
+.h2{font-family:var(--serif);font-weight:600;font-size:17px;margin:22px 0 12px;display:flex;justify-content:space-between;align-items:baseline}
+.h2 a,.h2 button{font-family:var(--sans);font-weight:400;font-size:12px;color:var(--ink-2)}
+.card{background:var(--card);border-radius:22px;padding:16px}
+.muted{color:var(--ink-2)}
+.btn{height:46px;border-radius:23px;padding:0 20px;font-weight:500;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.primary{background:var(--sage-d);color:#FBF9F6}
+.btn.ghost{background:var(--oat);color:var(--ink)}
+.tag{font-size:11px;padding:3px 8px;border-radius:999px;background:var(--oat);color:var(--ink-2)}
+.ai{font-size:10px;padding:2px 6px;border-radius:6px;background:var(--mist-l);color:#5E717C;font-weight:500}
+.back{display:flex;align-items:center;gap:6px;margin:8px 0 12px;font-size:14px;color:var(--ink-2)}
+.title{font-family:var(--serif);font-weight:600;font-size:22px;margin:0 0 4px}
+
+/* wardrobe */
+.ward-switch{display:flex;align-items:center;gap:6px;font-family:var(--serif);font-weight:600;font-size:15px}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);margin:14px 0 16px;background:var(--card);border-radius:22px;padding:14px 4px}
+.summary div{text-align:center}
+.summary b{display:block;font-family:var(--latin);font-style:italic;font-size:28px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.summary span{font-size:11.5px;color:var(--ink-2)}
+.summary div+div{border-left:1px solid var(--line)}
+.idle-banner{display:flex;align-items:center;gap:12px;background:var(--rose-l);border-radius:20px;padding:12px 14px;margin-top:14px;width:100%;text-align:left}
+.idle-banner .ic{width:36px;height:36px;border-radius:50%;background:var(--card);display:grid;place-items:center;flex:none}
+.idle-banner p{margin:0;font-size:13.5px;font-weight:500}
+.idle-banner small{color:var(--ink-2);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.item{background:var(--card);border-radius:18px;padding:8px 8px 10px;text-align:left}
+.item .ph{aspect-ratio:1;border-radius:12px;display:grid;place-items:center}
+.item .ph svg{width:78%;height:78%}
+.item p{margin:7px 2px 0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item small{display:block;margin:2px 2px 0;font-size:10.5px;color:var(--ink-2)}
+.fab{position:absolute;right:24px;bottom:100px;width:58px;height:58px;border-radius:50%;background:var(--sage-d);display:grid;place-items:center;box-shadow:0 8px 20px rgba(80,95,75,.35);z-index:4}
+.fab svg{width:26px;height:26px}
+
+/* capture */
+.cut{background:repeating-conic-gradient(#EFEAE3 0 25%,#F7F4EF 0 50%) 0 0/18px 18px;border-radius:24px;aspect-ratio:1/1;display:grid;place-items:center;position:relative}
+.cut svg{width:62%;height:62%;filter:drop-shadow(0 10px 14px rgba(70,60,50,.18))}
+.timer{position:absolute;left:12px;top:12px;font-size:12px;background:var(--card);padding:5px 10px;border-radius:999px}
+.timer b{color:var(--sage-d)}
+.field{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--line);font-size:14px}
+.field:last-child{border-bottom:0}
+.field .val{display:flex;gap:6px;align-items:center;color:var(--ink-2)}
+.cdot{width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+
+/* idle */
+.rate{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rate .card{display:flex;align-items:center;gap:12px}
+.rate b{font-family:var(--latin);font-style:italic;font-size:30px;font-weight:600;line-height:1}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--oat);border-radius:14px;padding:4px;margin:18px 0 12px}
+.seg button{padding:8px 0;border-radius:10px;font-size:13px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);font-weight:500}
+.row{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:18px;padding:10px;margin-bottom:10px}
+.row .ph{width:64px;height:64px;border-radius:14px;display:grid;place-items:center;flex:none}
+.row .ph svg{width:80%;height:80%}
+.row .meta{flex:1;min-width:0}
+.row .meta p{margin:0 0 3px;font-size:14px;font-weight:500}
+.row .meta small{font-size:12px;color:var(--ink-2)}
+.row .acts{display:flex;flex-direction:column;gap:6px}
+.mini{font-size:12px;padding:5px 10px;border-radius:999px;background:var(--oat)}
+.mini.rose{background:var(--rose-l)}
+
+/* outfit */
+.weather{border-radius:26px;padding:18px;background:linear-gradient(140deg,#C9D3D8 0%,#E6DDD2 100%);display:flex;justify-content:space-between;align-items:center}
+.weather .t{font-family:var(--latin);font-style:italic;font-weight:600;font-size:52px;line-height:.9}
+.weather p{margin:6px 0 0;font-size:12.5px;color:#5C5650}
+.weather .city{font-size:13px;font-weight:500;display:flex;align-items:center;gap:4px}
+.carousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -20px;padding:2px 20px 4px;scrollbar-width:none}
+.carousel::-webkit-scrollbar{display:none}
+.look{flex:none;width:286px;scroll-snap-align:center;background:var(--card);border-radius:26px;padding:14px}
+.look .head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--ink-2)}
+.look .head b{font-family:var(--latin);font-style:italic;font-size:20px;color:var(--ink);font-weight:600}
+.flat{position:relative;height:250px;margin:8px 0 10px;border-radius:18px}
+.flat button{position:absolute;display:grid;place-items:center;border-radius:14px}
+.flat button:hover{background:rgba(255,255,255,.35)}
+.flat svg{width:100%;height:100%;filter:drop-shadow(0 6px 8px rgba(70,60,50,.14))}
+.look .why{font-size:12.5px;line-height:1.6;margin:0 0 12px}
+.look .acts{display:grid;grid-template-columns:1fr auto;gap:8px}
+.swap{position:absolute;left:12px;right:12px;bottom:12px;background:var(--card);border-radius:16px;padding:10px;box-shadow:0 8px 24px rgba(60,50,40,.18);font-size:12px}
+.swap .opts{display:flex;gap:8px;margin-top:8px}
+.swap .opts span{width:52px;height:52px;border-radius:12px;display:grid;place-items:center}
+.swap .opts svg{width:80%;height:80%}
+.done{display:flex;gap:12px;align-items:center;background:#E3E8E0;border-radius:20px;padding:14px;margin-top:14px}
+.done p{margin:0;font-size:13.5px;font-weight:500}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:10px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--sage-d);width:16px;border-radius:3px}
+
+/* inspiration */
+.profile{background:var(--card);border-radius:24px;padding:16px}
+.bars{display:grid;gap:8px;margin:12px 0}
+.bar{display:grid;grid-template-columns:52px 1fr 36px;align-items:center;gap:8px;font-size:12.5px}
+.bar i{height:8px;border-radius:4px;display:block}
+.bar span:last-child{text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.adds{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.adds button{background:var(--card);border-radius:16px;padding:12px 0;font-size:12.5px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.adds svg{width:22px;height:22px}
+.masonry{columns:2;column-gap:10px}
+.insp{break-inside:avoid;margin-bottom:10px;border-radius:20px;overflow:hidden;background:var(--card)}
+.insp .art{display:grid;place-items:end center;padding-top:10px}
+.insp .art svg{width:70%}
+.insp .cap{padding:8px 10px 10px;display:flex;flex-wrap:wrap;gap:4px}
+
+/* me */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats .card{text-align:center;padding:14px 4px}
+.stats b{display:block;font-family:var(--latin);font-style:italic;font-weight:600;font-size:30px;line-height:1.1}
+.stats span{font-size:12px;color:var(--ink-2)}
+.report-card{width:100%;text-align:left;border-radius:24px;padding:16px;background:linear-gradient(150deg,#E9DCD6 0%,#E4E6DD 100%);margin-top:12px;display:block}
+.report-card .m{font-family:var(--latin);font-style:italic;font-size:34px;font-weight:600;line-height:1}
+.strip{display:flex;gap:6px;margin-top:12px}
+.strip span{flex:1;aspect-ratio:3/4;border-radius:10px;background:rgba(251,249,246,.7);display:grid;place-items:end center;overflow:hidden}
+.strip svg{width:80%}
+.list{background:var(--card);border-radius:22px;padding:2px 16px;margin-top:12px}
+.list .field{cursor:default}
+
+/* cabinets + zones */
+.cabtabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -20px 14px;padding:0 20px}
+.cabtabs::-webkit-scrollbar{display:none}
+.cabtab{flex:none;padding:9px 14px;border-radius:16px;background:var(--card);text-align:left;font-size:13.5px;font-weight:500}
+.cabtab small{display:block;font-weight:400;font-size:11px;color:var(--ink-2)}
+.cabtab[aria-pressed="true"]{background:var(--sage-d);color:#FBF9F6}
+.cabtab[aria-pressed="true"] small{color:#DDE3D9}
+.cabtab.add{background:transparent;border:1.5px dashed #C9BFB2;color:var(--ink-2)}
+.cabinet{background:linear-gradient(160deg,#DCCDB9,#CDBBA4);border-radius:18px;padding:8px;box-shadow:inset 0 0 0 1px rgba(90,70,50,.12),0 10px 24px rgba(90,70,50,.14)}
+.cabinet .cells{display:grid;gap:6px;height:300px}
+.zone{position:relative;border-radius:10px;background:#F7F2EB;padding:8px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;box-shadow:inset 0 2px 6px rgba(90,70,50,.10)}
+.zone b{font-size:12.5px;font-weight:500;position:relative;z-index:1}
+.zone small{font-size:11px;color:var(--ink-2);position:relative;z-index:1}
+.zone .rod{position:absolute;left:8px;right:8px;top:30px;height:2px;border-radius:1px;background:#BCA58C}
+.zone .hang{position:absolute;left:10px;right:10px;top:31px;bottom:24px;display:flex;gap:2px;justify-content:center;align-items:flex-start}
+.zone .hang svg{width:34%;height:auto;max-height:100%}
+.zone .drawer{position:absolute;left:50%;top:50%;width:26px;height:4px;margin:-2px 0 0 -13px;border-radius:2px;background:#BCA58C}
+.zone[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--sage-d)}
+.zone .pen{position:absolute;right:6px;top:6px;font-size:11px;color:var(--sage-d);z-index:1}
+.addzone{margin-top:10px;width:100%;border:1.5px dashed #C9BFB2;border-radius:14px;padding:10px;color:var(--ink-2);font-size:13px}
+.loc{font-size:10.5px;color:var(--sage-d);margin:2px 2px 0;display:block}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:26px 26px 0 0;padding:18px 20px 34px;box-shadow:0 -10px 30px rgba(60,50,40,.18);z-index:6}
+.sheet h3{font-family:var(--serif);font-weight:600;font-size:16px;margin:0 0 4px}
+.sheet .lbl{font-size:12px;color:var(--ink-2);margin:14px 0 8px}
+.scrim{position:absolute;inset:0;background:rgba(62,58,54,.25);z-index:5}
+.tools{display:flex;gap:8px}
+.icon-btn{position:relative}
+.badge{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;border-radius:9px;background:var(--rose);color:#FBF9F6;font-size:10.5px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+/* search */
+.sbox{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:16px;padding:0 14px;height:46px;margin-bottom:6px}
+.sbox input{flex:1;border:0;background:transparent;font:inherit;font-size:15px;color:var(--ink);outline:none;min-width:0}
+.sbox svg{width:18px;height:18px;flex:none}
+.flabel{font-size:12px;color:var(--ink-2);margin:16px 0 8px}
+.cdots{display:flex;gap:10px;flex-wrap:wrap}
+.cdots button{width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.cdots button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--sage-d)}
+.wrapchips{display:flex;gap:8px;flex-wrap:wrap}
+/* style library */
+.lib{background:var(--card);border-radius:24px;padding:16px;margin-top:12px}
+.lib h4{font-size:12px;font-weight:500;color:var(--ink-2);margin:14px 0 8px;display:flex;gap:8px;align-items:baseline}
+.lib h4:first-of-type{margin-top:6px}
+.lib h4 i{font-style:normal;font-size:11px;color:#A69D93;font-weight:400}
+.sty{padding:6px 11px;border-radius:999px;background:var(--paper);font-size:12.5px;color:var(--ink)}
+.sty.hit{background:var(--sage-d);color:#FBF9F6}
+.sty.hit em{font-style:normal;opacity:.8;margin-left:4px;font-size:11px}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.dopt{background:var(--paper);border-radius:14px;padding:10px 12px;text-align:left}
+.dopt b{display:block;font-size:13.5px;font-weight:500}
+.dopt small{font-size:11px;color:var(--ink-2)}
+.dopt[aria-pressed="true"]{background:var(--rose-l);box-shadow:inset 0 0 0 1.5px #B88E86}
+.pricebox{display:inline-flex;align-items:center;gap:4px;background:var(--paper);border-radius:12px;padding:0 12px;height:36px;font-size:14px}
+.pricebox input{border:0;background:transparent;font:inherit;width:70px;outline:none;color:var(--ink)}
+.gtoggle{display:inline-flex;align-items:baseline;gap:6px}
+.gtoggle i{font-style:normal;color:#BDB3A8}
+.gtoggle button{font-family:var(--serif);font-weight:600;font-size:17px;color:#B3A99E}
+.gtoggle button[aria-pressed="true"]{color:var(--ink)}
+.lk-tags{display:flex;gap:4px}
+.tag.st{background:var(--rose-l);color:#8E6A63}
+.accrow{display:flex;align-items:center;gap:6px;margin:0 0 10px;flex-wrap:wrap}
+.albl{font-size:11.5px;color:var(--ink-2);margin-right:2px}
+.acc{width:34px;height:34px;border-radius:10px;display:grid;place-items:center}
+.acc svg{width:84%;height:84%}
+.hairtip{display:flex;gap:10px;align-items:flex-start;background:var(--rose-l);border-radius:14px;padding:10px 12px;margin-bottom:10px}
+.hic{width:30px;height:30px;border-radius:50%;background:var(--card);display:grid;place-items:center;flex:none}
+.hic svg{width:18px;height:18px}
+.hairtip b{display:block;font-size:12.5px;font-weight:500;margin-bottom:2px}
+.hairtip small{display:block;font-size:11.5px;color:#7A6660;line-height:1.5}
+/* category folders */
+.folders{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:14px 20px 4px}
+.folders::-webkit-scrollbar{display:none}
+.folder{flex:none;width:122px;position:relative;border-radius:4px 18px 18px 18px;padding:10px 10px 12px;text-align:left}
+.folder::before{content:"";position:absolute;left:0;top:-10px;width:52px;height:14px;border-radius:9px 12px 0 0;background:inherit}
+.folder .fan{height:78px;position:relative;margin:2px 0 10px}
+.folder .fan span{position:absolute;bottom:0;width:56px;height:68px;border-radius:10px;background:#FBF9F6;box-shadow:0 3px 10px rgba(60,50,40,.13);display:grid;place-items:center}
+.folder .fan span svg{width:86%;height:86%}
+.folder .fan span:nth-child(1){left:0;transform:rotate(-9deg)}
+.folder .fan span:nth-child(2){left:24px;z-index:2;bottom:4px}
+.folder .fan span:nth-child(3){left:48px;transform:rotate(8deg)}
+.folder b{display:block;font-family:var(--serif);font-weight:600;font-size:14px}
+.folder small{font-size:11.5px;color:var(--ink-2)}
+.folder[aria-pressed="true"]{box-shadow:0 0 0 2px var(--sage-d)}
+.folder.new{background:transparent;border:1.5px dashed #C9BFB2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--ink-2);font-size:12.5px;min-height:132px}
+.folder.new::before{display:none}
+/* outfit history */
+.seg.two{grid-template-columns:repeat(2,1fr);margin:0 0 12px}
+.hist{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.oc{background:var(--card);border-radius:20px;padding:8px 8px 10px}
+.quad{display:grid;grid-template-columns:1fr 1fr;gap:4px;border-radius:14px;padding:6px;aspect-ratio:1}
+.quad span{display:grid;place-items:center}
+.quad svg{width:96%;height:96%}
+.oc p{margin:8px 4px 2px;font-size:13px;font-weight:500;display:flex;justify-content:space-between}
+.oc small{margin:0 4px;font-size:11.5px;color:var(--ink-2);display:flex;gap:6px;align-items:center}
+.month{font-family:var(--latin);font-style:italic;font-size:22px;font-weight:600;margin:18px 0 10px}
+.heart[aria-pressed="true"]{background:var(--rose-l);color:#9A6B63}
+/* report */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal span{aspect-ratio:3/4;border-radius:8px;background:var(--oat);display:grid;place-items:end center;overflow:hidden;font-size:9px;color:var(--ink-2);position:relative}
+.cal span em{position:absolute;left:4px;top:3px;font-style:normal}
+.cal span svg{width:86%}
+.cal .wk{aspect-ratio:auto;background:none;font-size:10px;place-items:center}
+.quote{font-family:var(--serif);font-size:14px;line-height:1.8;margin:0}
+
+@media (max-width:720px){
+  .stage{padding:0;display:block}
+  .index{display:none}
+  .phone{width:100%;height:100dvh;border-radius:0;box-shadow:none}
+}
+@media (prefers-reduced-motion:no-preference){
+  .screen{animation:fade .25s ease}
+  @keyframes fade{from{opacity:.4}to{opacity:1}}
+}
+</style>
+
+<div class="stage">
+  <aside class="index">
+    <h1>AI衣橱 · 页面草图</h1>
+    <p class="sub">可以点击的低保真草图。点底部 Tab、悬浮“＋”、闲置入口、月报卡片都能进入对应页面。数据为示例。</p>
+    <ol id="index"></ol>
+    <div class="note">
+      <b>风格方向</b>：莫兰迪灰调配色，沿用你喜欢的参考图里的大圆角卡片、手写感斜体英文标题和留白。主色是灰绿，粉、雾蓝、燕麦色做分类底色。
+      <div class="swatches"><i style="background:#6E7B6A"></i><i style="background:#9CAA97"></i><i style="background:#C9A8A1"></i><i style="background:#A4B4BE"></i><i style="background:#B8977F"></i><i style="background:#E8E0D4"></i></div>
+    </div>
+    <div class="note">
+      <b>和参考软件的主要区别</b>：首页直接是衣橱网格，不是空引导；搭配页是左右滑动的 3 套方案，点单品可替换；灵感页有“我的风格画像”；“我的”去掉了会员和推荐，加入 iCloud 同步和闲置设置。
+    </div>
+  </aside>
+
+  <div class="phone" id="phone">
+    <div class="statusbar"><span>9:41</span><span>●●● ◔</span></div>
+    <div class="screen" id="screen"></div>
+    <button class="fab" id="fab" aria-label="添加衣物"><svg viewBox="0 0 24 24" fill="none" stroke="#FBF9F6" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    <nav class="tabbar" id="tabbar"></nav>
+    <div id="sheet"></div>
+  </div>
+</div>
+
+<script>
+/* ---------- garment cut-outs (stand-ins for AI background removal) ---------- */
+let gid=0;
+function shade(hex,a){const n=parseInt(hex.slice(1),16);const f=v=>Math.max(0,Math.min(255,Math.round(a>0?v+(255-v)*a:v*(1+a))));return '#'+[n>>16,n>>8&255,n&255].map(v=>f(v).toString(16).padStart(2,'0')).join('')}
+function garment(t,c){
+  const id='g'+(gid++), L=shade(c,.22), D=shade(c,-.12), DD=shade(c,-.32), F=`url(#${id})`;
+  const line=`stroke="${DD}" stroke-opacity=".45" stroke-width=".8" fill="none" stroke-linecap="round"`;
+  const stitch=`stroke="${DD}" stroke-opacity=".4" stroke-width=".6" stroke-dasharray="1.6 1.3" fill="none"`;
+  const fold=`fill="${DD}" opacity=".12"`;
+  const S={
+  shirt:`<path d="M31 17 L15 30 L11 79 Q16 82 21 80 L28 44 Z" fill="${D}"/><path d="M69 17 L85 30 L89 79 Q84 82 79 80 L72 44 Z" fill="${D}"/><path d="M12 73 L21 74.5 M88 73 L79 74.5" ${line}/>
+    <path d="M31 17 L43 11 L50 19 L57 11 L69 17 L71 92 Q50 95 29 92 Z" fill="${F}"/><path d="M37 30 Q41 60 35 91 L29 92 L30 30Z" ${fold}/>
+    <path d="M43 11 L50 19 L45 28 L37 15 Z M57 11 L50 19 L55 28 L63 15 Z" fill="${L}" stroke="${DD}" stroke-opacity=".35" stroke-width=".6"/>
+    <path d="M50 19 L50 93" ${line}/>${[32,46,60,74,87].map(y=>`<circle cx="52.5" cy="${y}" r="1.1" fill="${DD}" opacity=".55"/>`).join('')}
+    <path d="M58 38 h9 v9 h-9 z" ${stitch}/><path d="M30 89 Q50 92 70 89" ${stitch}/>`,
+  tee:`<path d="M33 16 L14 29 L21 46 L31 40 Z" fill="${D}"/><path d="M67 16 L86 29 L79 46 L69 40 Z" fill="${D}"/><path d="M16.5 33 L23 44 M83.5 33 L77 44" ${stitch}/>
+    <path d="M33 16 Q50 25 67 16 L70 92 Q50 94 30 92 Z" fill="${F}"/>${[34,46,58,70,82].map(y=>`<path d="M31 ${y} H69" stroke="${L}" stroke-width="3" opacity=".7"/>`).join('')}
+    <path d="M60 28 Q67 60 63 91 L70 92 L68 28Z" ${fold}/><path d="M39 15 Q50 23 61 15" stroke="${DD}" stroke-opacity=".45" stroke-width="2.2" fill="none"/><path d="M31 88 Q50 91 69 88" ${stitch}/>`,
+  knit:`<path d="M32 16 L16 28 L10 80 L20 83 L28 44 Z" fill="${D}"/><path d="M68 16 L84 28 L90 80 L80 83 L72 44 Z" fill="${D}"/>
+    ${[0,1,2].map(i=>`<path d="M${10.6+i*.2} ${75+i*2.4} L${20.2-i*.1} ${78+i*2.4} M${89.4-i*.2} ${75+i*2.4} L${79.8+i*.1} ${78+i*2.4}" ${line}/>`).join('')}
+    <path d="M32 16 L42 12 Q50 15 58 12 L68 16 L71 92 L29 92 Z" fill="${F}"/><path d="M42 12 L50 48 L58 12 Q50 15 42 12Z" fill="${DD}" opacity=".22"/>
+    <path d="M42 12 L50 48 L50 92 M58 12 L50 48" ${line}/>${[56,66,76].map(y=>`<circle cx="53" cy="${y}" r="1.4" fill="${DD}" opacity=".55"/>`).join('')}
+    ${Array.from({length:14},(_,i)=>`<path d="M${30.5+i*3} 84 V91.5" ${line}/>`).join('')}<path d="M34 30 Q38 60 33 84 L29 84 L30 30Z" ${fold}/>`,
+  pants:`<path d="M30 9 H70 L71 17 H29 Z" fill="${D}"/><path d="M36 9v8 M50 9v8 M64 9v8" ${line}/>
+    <path d="M29 17 H71 L76 93 H57 L50 40 L43 93 H24 Z" fill="${F}"/><path d="M50 17 V40" ${line}/>
+    <path d="M37.5 22 L35 90 M62.5 22 L65 90" stroke="${DD}" stroke-opacity=".2" stroke-width=".9"/><path d="M31 18 Q36 27 41 18 M69 18 Q64 27 59 18" ${line}/>
+    <path d="M43 93 L50 40 L51 58 L47 93Z" ${fold}/><path d="M24.5 89 H43 M57 89 H75.5" ${stitch}/>`,
+  skirt:`<path d="M35 12 H65 V19 H35 Z" fill="${D}"/><circle cx="61" cy="15.5" r="1.2" fill="${DD}" opacity=".55"/>
+    <path d="M35 19 H65 L82 88 Q50 93 18 88 Z" fill="${F}"/><path d="M44 19 L37 90 M56 19 L63 90 M50 19 V91" stroke="${DD}" stroke-opacity=".22" stroke-width=".9" fill="none"/>
+    <path d="M56 19 L63 90 L72 89Z" ${fold}/><path d="M20 85 Q50 90 80 85" ${stitch}/>`,
+  dress:`<path d="M41 4 L42 10 M59 4 L58 10" stroke="${D}" stroke-width="1.6"/><path d="M40 10 L46 10 Q50 15 54 10 L60 10 L62 35 L38 35 Z" fill="${F}"/>
+    <path d="M38 37 L62 37 L83 92 Q50 97 17 92 Z" fill="${F}"/><path d="M37 33 H63 V39 H37Z" fill="${D}"/><path d="M50 37 l-5 9 M50 37 l5 10" stroke="${D}" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M45 40 L33 93 L26 92Z M58 41 L69 94 L63 95Z" ${fold}/><path d="M19 89 Q50 94 81 89" ${stitch}/>`,
+  coat:`<path d="M31 13 L15 26 L11 86 L22 88 L28 46 Z" fill="${D}"/><path d="M69 13 L85 26 L89 86 L78 88 L72 46 Z" fill="${D}"/><path d="M11.5 80 L22 82 M88.5 80 L78 82" stroke="${DD}" stroke-opacity=".5" stroke-width="2"/>
+    <path d="M31 13 L43 10 L50 28 L57 10 L69 13 L72 95 L28 95 Z" fill="${F}"/><path d="M34 62 L32 95 L28 95 L30 62Z" ${fold}/>
+    <path d="M43 10 L50 28 L44 40 L35 16 Z M57 10 L50 28 L56 40 L65 16 Z" fill="${L}" stroke="${DD}" stroke-opacity=".35" stroke-width=".6"/>
+    <path d="M50 28 L53 95" ${line}/><path d="M29 56 H71 V61.5 H29Z" fill="${D}"/><rect x="47" y="55" width="7" height="7.5" rx="1" fill="none" stroke="${DD}" stroke-opacity=".6" stroke-width="1"/>
+    ${[[44,46],[58,46],[44,72],[58,72]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1.5" fill="${DD}" opacity=".55"/>`).join('')}<path d="M29 92 H71" ${stitch}/>`,
+  shoes:`<path d="M10 77 Q9 85 16 85 L86 85 Q93 85 92 77 Z" fill="${shade(c,-.4)}"/>
+    <path d="M12 78 Q9 57 25 53 L40 53 Q50 62 64 64 L84 68 Q93 70 92 78 Z" fill="${F}"/><path d="M25 53 Q34 61 41 55 Q34 52 25 53Z" fill="${DD}" opacity=".35"/>
+    <path d="M44 60 Q55 67 67 65" stroke="${DD}" stroke-opacity=".55" stroke-width="1.6" fill="none"/><path d="M15 75 Q50 78 89 75" ${stitch}/><path d="M12 70 Q14 60 22 56" ${line}/>`,
+  bag:`<path d="M36 40 Q36 15 50 15 Q64 15 64 40" stroke="${D}" stroke-width="3.6" fill="none" stroke-linecap="round"/>
+    <path d="M22 38 H78 L75 88 Q50 91 25 88 Z" fill="${F}"/><path d="M22 38 H78 L77.5 45 H22.5Z" fill="${D}" opacity=".7"/>
+    <path d="M25 48 H75" ${stitch}/><path d="M62 45 L67 88 L75 88 L77.5 45Z" ${fold}/><path d="M36 40 v8 M64 40 v8" stroke="${D}" stroke-width="3.6"/>`,
+  necklace:`<path d="M24 14 Q26 52 50 60 Q74 52 76 14" stroke="${D}" stroke-width="1.6" fill="none" stroke-dasharray="2.4 1.2"/>
+    <path d="M50 60 v6" stroke="${D}" stroke-width="1.4"/><circle cx="50" cy="73" r="8" fill="${F}" stroke="${DD}" stroke-opacity=".5" stroke-width=".8"/><circle cx="47" cy="70" r="2.2" fill="#fff" opacity=".6"/>`,
+  earring:`${[34,66].map(x=>`<path d="M${x} 18 q-6 0 -6 7 q0 5 6 7" stroke="${DD}" stroke-opacity=".6" stroke-width="1.4" fill="none"/><path d="M${x} 32 v10" stroke="${DD}" stroke-opacity=".5" stroke-width="1.2"/><circle cx="${x}" cy="54" r="11" fill="${F}" stroke="${DD}" stroke-opacity=".3" stroke-width=".8"/><circle cx="${x-4}" cy="50" r="3" fill="#fff" opacity=".7"/>`).join('')}`,
+  hairclip:`<path d="M18 52 Q20 30 50 30 Q80 30 82 52 Q72 44 50 44 Q28 44 18 52Z" fill="${F}"/>
+    ${[28,38,50,62,72].map(x=>`<path d="M${x} ${x===50?44:46} Q${x+2} 62 ${x-2} 74" stroke="${D}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`).join('')}
+    <path d="M30 38 Q50 32 70 38" stroke="#fff" stroke-opacity=".35" stroke-width="2" fill="none"/>${[[34,40],[56,37],[66,44]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="3" ry="2" fill="${DD}" opacity=".35"/>`).join('')}`,
+  hat:`<path d="M14 60 Q50 50 86 60 Q88 70 50 70 Q12 70 14 60Z" fill="${D}"/><path d="M28 58 Q30 26 50 26 Q70 26 72 58 Q50 62 28 58Z" fill="${F}"/>
+    <path d="M29 50 Q50 55 71 50" stroke="${DD}" stroke-opacity=".4" stroke-width="2.5" fill="none"/><path d="M18 63 Q50 66 82 63" ${stitch}/>`,
+  scarf:`<path d="M26 14 Q50 24 74 14 L76 26 Q64 34 60 40 L66 90 L54 92 L50 44 Q44 38 38 40 L40 88 L28 90 L30 34 Q24 28 26 14Z" fill="${F}"/>
+    <path d="M28 90 v6 M32 90 v6 M36 89 v6 M56 92 v5 M60 91 v6 M64 90 v6" stroke="${D}" stroke-width="1.2"/><path d="M40 40 Q50 34 60 40" ${line}/><path d="M33 36 L36 86" ${stitch}/>`,
+  watch:`<rect x="41" y="8" width="18" height="84" rx="6" fill="${D}"/>${[18,26,74,82].map(y=>`<path d="M43 ${y} h14" stroke="${DD}" stroke-opacity=".35"/>`).join('')}
+    <circle cx="50" cy="50" r="17" fill="#C9B48E"/><circle cx="50" cy="50" r="13.5" fill="#F7F2EA"/><path d="M50 50 V41 M50 50 L56 53" stroke="#3E3A36" stroke-width="1.4" stroke-linecap="round"/><circle cx="50" cy="50" r="1.2" fill="#3E3A36"/>`
+  };
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2=".9" y2="1"><stop offset="0" stop-color="${L}"/><stop offset="1" stop-color="${D}"/></linearGradient></defs><ellipse cx="50" cy="97" rx="30" ry="2.4" fill="#3E3A36" opacity=".08"/>${S[t]}</svg>`;
+}
+function figure(top,bottom){ // person cut-out stand-in for inspiration / daily photos
+  const a='g'+(gid++), b='g'+(gid++);
+  return `<svg viewBox="0 0 100 160" aria-hidden="true"><defs><linearGradient id="${a}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${shade(top,.18)}"/><stop offset="1" stop-color="${shade(top,-.12)}"/></linearGradient><linearGradient id="${b}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${shade(bottom,.15)}"/><stop offset="1" stop-color="${shade(bottom,-.15)}"/></linearGradient></defs>
+  <ellipse cx="50" cy="154" rx="24" ry="3" fill="#3E3A36" opacity=".1"/>
+  <path d="M38 22 Q37 6 50 6 Q63 6 62 22 L64 36 Q50 39 36 36 Z" fill="#5A4E46"/>
+  <path d="M46 29 h8 v8 h-8z" fill="#D7BCA7"/><ellipse cx="50" cy="21" rx="9" ry="10.5" fill="#E6CFBD"/>
+  <path d="M40.5 19 Q43 9 52 10 Q60 11 59.5 19 Q53 13 45 16 Z" fill="#5A4E46"/>
+  <path d="M30 43 L23 88 Q25 91 29 89 L36 52Z M70 43 L77 88 Q75 91 71 89 L64 52Z" fill="#D7BCA7"/>
+  <path d="M36 36 Q50 41 64 36 L72 45 L67 62 L65.5 60 L67 86 L33 86 L34.5 60 L33 62 L28 45 Z" fill="url(#${a})"/>
+  <path d="M44 36 Q50 42 56 36" stroke="${shade(top,-.3)}" stroke-opacity=".4" fill="none"/>
+  <path d="M33 84 H67 L70 146 H55 L50 102 L45 146 H30 Z" fill="url(#${b})"/><path d="M50 88 V102" stroke="${shade(bottom,-.35)}" stroke-opacity=".4"/>
+  <path d="M29 146 h16 l1 6 h-18z M54 146 h16 l2 6 h-18z" fill="#4A433E"/></svg>`;
+}
+
+/* ---------- sample data ---------- */
+const items = [
+  {n:'白色亚麻衬衫',c:'上装',t:'shirt',col:'#F1ECE3',bg:'#E8E0D4',worn:14,last:'3 天前'},
+  {n:'燕麦针织开衫',c:'上装',t:'knit',col:'#D8CBB6',bg:'#EDE6DB',worn:9,last:'上周'},
+  {n:'雾蓝条纹T恤',c:'上装',t:'tee',col:'#A9B9C3',bg:'#DCE3E7',worn:11,last:'昨天'},
+  {n:'灰绿阔腿裤',c:'下装',t:'pants',col:'#9CAA97',bg:'#E3E8E0',worn:16,last:'今天'},
+  {n:'豆沙A字半裙',c:'下装',t:'skirt',col:'#C9A8A1',bg:'#EBDCD7',worn:6,last:'2 周前'},
+  {n:'浅咖直筒裤',c:'下装',t:'pants',col:'#B8977F',bg:'#EDE3DA',worn:8,last:'5 天前'},
+  {n:'焦糖风衣',c:'外套',t:'coat',col:'#BFA083',bg:'#EDE6DB',worn:7,last:'4 天前'},
+  {n:'奶油色连衣裙',c:'连衣裙',t:'dress',col:'#EADFCB',bg:'#E3E8E0',worn:3,last:'1 个月前'},
+  {n:'乐福鞋',c:'鞋履',t:'shoes',col:'#6F625A',bg:'#E8E0D4',worn:21,last:'今天'},
+  {n:'帆布托特包',c:'包袋',t:'bag',col:'#D9C9A3',bg:'#EDE6DB',worn:18,last:'今天'},
+  {n:'灰粉针织衫',c:'上装',t:'knit',col:'#D3B9B3',bg:'#EBDCD7',worn:4,last:'3 周前'},
+  {n:'小白鞋',c:'鞋履',t:'shoes',col:'#F3EFE8',bg:'#DCE3E7',worn:12,last:'2 天前'},
+  {n:'珍珠耳环',c:'配饰',sub:'耳环',t:'earring',col:'#EFE9DF',bg:'#EDE6DB',worn:10,last:'昨天'},
+  {n:'金色锁骨链',c:'配饰',sub:'项链',t:'necklace',col:'#C9AE7A',bg:'#E8E0D4',worn:15,last:'今天'},
+  {n:'玳瑁抓夹',c:'配饰',sub:'发饰',t:'hairclip',col:'#9A7A62',bg:'#EBDCD7',worn:20,last:'今天'},
+  {n:'燕麦渔夫帽',c:'配饰',sub:'帽子',t:'hat',col:'#D8CBB6',bg:'#E3E8E0',worn:5,last:'上周'},
+  {n:'灰绿丝巾',c:'配饰',sub:'围巾',t:'scarf',col:'#9CAA97',bg:'#DCE3E7',worn:3,last:'3 周前'},
+  {n:'棕色皮带手表',c:'配饰',sub:'手表',t:'watch',col:'#8A6E58',bg:'#EDE3DA',worn:22,last:'今天'}
+];
+const idle = {
+  all:[
+    {n:'丝绒吊带裙',t:'dress',col:'#8E7B86',bg:'#EBDCD7',d:'142 天未穿',note:'入库 2025-03'},
+    {n:'亮黄卫衣',t:'knit',col:'#D9C48F',bg:'#EDE6DB',d:'118 天未穿',note:'只穿过 1 次'},
+    {n:'格纹西装裤',t:'pants',col:'#8F8A84',bg:'#E8E0D4',d:'97 天未穿',note:'只穿过 2 次'}
+  ],
+  watch:[
+    {n:'奶油色连衣裙',t:'dress',col:'#EADFCB',bg:'#E3E8E0',d:'观察剩余 12 天',note:'观察期内穿一次即移出'},
+    {n:'灰粉针织衫',t:'knit',col:'#D3B9B3',bg:'#EBDCD7',d:'观察剩余 25 天',note:'上次穿着 3 周前'}
+  ],
+  gone:[
+    {n:'牛仔外套',t:'coat',col:'#9FB0C0',bg:'#DCE3E7',d:'二手卖出 ¥180 · 闲鱼',note:'2026-09-18',m:'二手卖出',price:180},
+    {n:'高跟凉鞋',t:'shoes',col:'#C9A8A1',bg:'#EBDCD7',d:'捐赠 · 社区旧衣箱',note:'2026-08-30',m:'捐赠'}
+  ]
+};
+const ST=[['法式','极简'],['日杂 / 森系'],['日杂 / 森系','美式休闲'],['极简','日杂 / 森系'],['法式','温柔知性'],['极简'],['法式','英伦'],['度假风','法式'],['英伦','学院风'],['日杂 / 森系'],['温柔知性'],['美式休闲','极简'],['法式','温柔知性'],['法式','极简'],['法式','日杂 / 森系'],['日杂 / 森系','度假风'],['法式','英伦'],['英伦','极简']];
+const scenes = ['通勤','休闲','运动','派对','正式','度假'];
+const looks = [
+  {name:'Look 01',style:'法式',acc:[13,17],hair:['低盘发','风大也不乱，露出风衣领口和锁骨链','短发可选：自然侧分，发尾略蓬'],why:'最高 21°，早晚 14° 有风，叠一件风衣，傍晚降温也够。',parts:[
+    {t:'coat',col:'#BFA083',x:6,y:8,w:46,h:62,label:'焦糖风衣'},
+    {t:'shirt',col:'#F1ECE3',x:52,y:4,w:40,h:40,label:'白色亚麻衬衫'},
+    {t:'pants',col:'#9CAA97',x:54,y:42,w:38,h:46,label:'灰绿阔腿裤'},
+    {t:'shoes',col:'#6F625A',x:8,y:70,w:34,h:24,label:'乐福鞋'}],bg:'#EDE6DB'},
+  {name:'Look 02',style:'日杂',acc:[15,12],hair:['低马尾 + 渔夫帽','帽檐压住碎发，马尾从帽下自然垂出','短发可选：碎发自然垂落，戴帽更松弛'],why:'雾蓝配浅咖，通勤不出错；这件开衫已 9 天没穿，正好轮换。',parts:[
+    {t:'knit',col:'#D8CBB6',x:6,y:4,w:44,h:46,label:'燕麦针织开衫'},
+    {t:'tee',col:'#A9B9C3',x:50,y:6,w:40,h:38,label:'雾蓝条纹T恤'},
+    {t:'pants',col:'#B8977F',x:52,y:44,w:38,h:46,label:'浅咖直筒裤'},
+    {t:'bag',col:'#D9C9A3',x:8,y:54,w:36,h:36,label:'帆布托特包'}],bg:'#DCE3E7'},
+  {name:'Look 03',style:'温柔知性',acc:[14,12,16],hair:['半扎发 + 玳瑁抓夹','抓夹和豆沙色同属暖调，柔和不抢戏','短发可选：耳后别一侧，露出耳环'],why:'豆沙半裙已经 2 周没穿，搭配灰粉针织衫，同色系更温柔。',parts:[
+    {t:'knit',col:'#D3B9B3',x:8,y:4,w:44,h:46,label:'灰粉针织衫'},
+    {t:'skirt',col:'#C9A8A1',x:52,y:10,w:40,h:46,label:'豆沙A字半裙'},
+    {t:'shoes',col:'#F3EFE8',x:54,y:64,w:36,h:24,label:'小白鞋'},
+    {t:'bag',col:'#D9C9A3',x:10,y:54,w:34,h:34,label:'帆布托特包'}],bg:'#EBDCD7'}
+];
+const insp = [
+  {top:'#EADFCB',bottom:'#6F625A',bg:'#E8E0D4',h:150,tags:['法式','极简']},
+  {top:'#A9B9C3',bottom:'#F1ECE3',bg:'#DCE3E7',h:120,tags:['日杂']},
+  {top:'#C9A8A1',bottom:'#B8977F',bg:'#EBDCD7',h:135,tags:['法式']},
+  {top:'#9CAA97',bottom:'#EADFCB',bg:'#E3E8E0',h:150,tags:['度假风']},
+  {top:'#8F8A84',bottom:'#3E3A36',bg:'#E8E0D4',h:125,tags:['老钱风','通勤']},
+  {top:'#D9C48F',bottom:'#A9B9C3',bg:'#EDE6DB',h:140,tags:['日杂','休闲']}
+];
+
+/* ---------- icons ---------- */
+const I = {
+  ward:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M12 3v18M9.5 11v2M14.5 11v2"/></svg>',
+  look:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M8 3l4 2 4-2 4 4-3 3v11H7V10L4 7z"/></svg>',
+  insp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>',
+  me:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+  box:'<svg viewBox="0 0 24 24" fill="none" stroke="#3E3A36" stroke-width="1.7" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="5" rx="1.2"/><path d="M5 9.5v9a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-9M10 13h4" stroke-linecap="round"/></svg>',
+  hair:'<svg viewBox="0 0 24 24" fill="none" stroke="#8E6A63" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="5" r="2.6"/><path d="M6.5 13.5a5.5 5.5 0 0 1 11 0v2.5c0 1.5-1 3-2 3.5M6.5 13.5V16c0 1.5 1 3 2 3.5"/><path d="M9 14.5c1-1 2-1.6 3-1.6s2 .6 3 1.6"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="#3E3A36" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>',
+  back:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  chev:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#857D75" stroke-width="1.8" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>',
+  down:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="#6E7B6A" stroke-width="1.6"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  album:'<svg viewBox="0 0 24 24" fill="none" stroke="#6E7B6A" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></svg>',
+  paste:'<svg viewBox="0 0 24 24" fill="none" stroke="#6E7B6A" stroke-width="1.6"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/></svg>',
+  hanger:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9A7A72" stroke-width="1.6" stroke-linecap="round"><path d="M12 7a2 2 0 1 1 2-2M12 7v2L3 16h18l-9-7"/></svg>',
+  pin:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>',
+  cloud:'<svg width="64" height="48" viewBox="0 0 64 48" fill="none"><circle cx="46" cy="14" r="9" fill="#E7D7B8"/><path d="M16 40h32a10 10 0 0 0 0-20 14 14 0 0 0-27-2A11 11 0 0 0 16 40z" fill="#FBF9F6" opacity=".85"/></svg>',
+  check:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12l5 5 9-10"/></svg>',
+  refresh:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 11A8 8 0 0 0 6 6L4 8M4 4v4h4M4 13a8 8 0 0 0 14 5l2-2M20 20v-4h-4"/></svg>'
+};
+
+/* ---------- state + screens ---------- */
+const S = {tab:'ward', sub:null, cat:'全部', scene:'通勤', seg:'all', look:0, confirmed:false, swap:null, hseg:'worn', saved:new Set(['Look 02']), sub2:'', group:'cat', sst:'', dispose:null, dmethod:null, price:'', plat:'闲鱼', who:'', q:'', sc:'', scol:'', cab:0, zone:'short', editCab:false, move:null, mvCab:0, mvZone:null};
+const screens = [
+  ['ward','衣橱','首页'],['cabinet','衣柜与分区','衣橱 › 衣柜'],['capture','拍照录入结果','衣橱 › ＋'],['idle','闲置衣物','衣橱 › 闲置'],
+  ['search','搜索衣物','衣橱 › 右上角'],['look','搭配','Tab 2'],['insp','灵感','Tab 3'],['me','我的','Tab 4'],['history','我的搭配','搭配 › 全部'],['report','九月衣橱报告','我的 › 月报']
+];
+const tabs = [['ward','衣橱'],['look','搭配'],['insp','灵感'],['me','我的']];
+
+function go(id){
+  if(['ward','look','insp','me'].includes(id)){S.tab=id;S.sub=null}
+  else{S.sub=id;S.tab={capture:'ward',idle:'ward',report:'me',history:'look',cabinet:'ward',search:'ward'}[id]}
+  S.swap=null; S.move=null; S.dispose=null; render(); document.getElementById('screen').scrollTop=0;
+}
+function current(){return S.sub||S.tab}
+
+function header(sub){
+  const tools=S.tab==='ward'&&!S.sub?`<div class="tools"><button class="icon-btn" data-go="idle" aria-label="闲置衣物，6 件">${I.box}<span class="badge">6</span></button><button class="icon-btn" data-go="search" aria-label="搜索衣物">${I.search}</button></div>`:'';
+  return `<div class="top"><div class="brand">AI <em>Wardrobe</em><small>穿你所有，爱你所穿</small></div>${tools}</div>`;
+}
+function backBar(label,to){return `<button class="back" data-go="${to}">${I.back}${label}</button>`}
+
+const V = {
+ward(){
+  const cats=['全部','上装','下装','外套','连衣裙','鞋履','包袋','配饰'];const folderBg=['#E8E0D4','#EBDCD7','#E3E8E0','#EDE3DA','#DCE3E7','#E9E4DA','#EDE6DB'];
+  const byStyle=S.group==='style';
+  const stylesUsed=['全部','法式','极简','日杂 / 森系','英伦','温柔知性','度假风','美式休闲'];
+  const match=(i,c)=>c==='全部'||(byStyle?ST[items.indexOf(i)].includes(c):i.c===c);
+  const groups=byStyle?stylesUsed:cats;
+  const list=items.filter(i=>match(i,S.cat)&&(S.cat!=='配饰'||!S.sub2||S.sub2==='全部'||i.sub===S.sub2));
+  return header('10 月 12 日 · 周一')+`
+  <div style="display:flex;justify-content:space-between;align-items:center"><button class="ward-switch" data-go="cabinet" aria-label="切换衣柜">主卧衣柜 ${I.down}</button><button class="mini" data-go="cabinet">衣柜与分区 ›</button></div>
+  <div class="summary"><div><b>48</b><span>件单品</span></div><div><b>18</b><span>本月穿着天数</span></div><div><b>12%</b><span>闲置率</span></div></div>
+  <div class="h2" style="margin:4px 0 0"><span class="gtoggle"><button data-group="cat" aria-pressed="${!byStyle}">分类</button><i>·</i><button data-group="style" aria-pressed="${byStyle}">风格</button></span><button>管理</button></div>
+  <div class="folders">${groups.map((c,k)=>{const its=items.filter(i=>match(i,c));const fan=(its.length>=3?its.slice(0,3):its);return `<button class="folder" data-cat="${c}" aria-pressed="${S.cat===c}" style="background:${folderBg[k%folderBg.length]}"><div class="fan">${fan.map(i=>`<span>${garment(i.t,i.col)}</span>`).join('')}</div><b>${c}</b><small>${c==='全部'?48:its.length*3+1} 件</small></button>`}).join('')}<button class="folder new"><span style="font-size:22px;line-height:1">＋</span>${byStyle?'添加风格':'新建分类'}</button></div>
+  ${!byStyle&&S.cat==='配饰'?`<div class="chips" style="margin-top:14px">${['全部','项链','耳环','发饰','帽子','围巾','手表','戒指','手链','胸针','腰带','眼镜'].map(x=>`<button class="chip" data-sub="${x}" aria-pressed="${(S.sub2||'全部')===x}">${x}</button>`).join('')}</div>`:''}
+  <div class="h2">${S.cat==='全部'?'全部单品':(byStyle?S.cat+' 风格':S.cat)}<span class="muted" style="font-family:var(--sans);font-size:12px;font-weight:400">按最近穿着排序</span></div>
+  <div class="grid">${list.map(i=>`<div class="item"><div class="ph" style="background:${i.bg}">${garment(i.t,i.col)}</div><p>${i.n}</p><small>穿过 ${i.worn} 次 · ${i.last}</small><span class="loc">${locName(i)}</span></div>`).join('')}</div>`;
+},
+capture(){
+  return backBar('衣橱','ward')+`
+  <h2 class="title">识别完成</h2><p class="muted" style="margin:0 0 14px;font-size:13px">确认信息后保存到衣橱，不对的地方点一下就能改</p>
+  <div class="cut"><span class="timer">抠图 <b>1.2 秒</b></span>${garment('coat','#BFA083')}</div>
+  <div class="card" style="margin-top:14px;padding:4px 16px">
+    <div class="field"><span>分类</span><span class="val"><span class="ai">AI</span>外套 › 风衣 ${I.chev}</span></div>
+    <div class="field"><span>颜色</span><span class="val"><span class="ai">AI</span><span class="cdot" style="background:#BFA083"></span><span class="cdot" style="background:#8A6E58"></span><span class="cdot" style="background:#E8DCCB"></span></span></div>
+    <div class="field"><span>颜色名</span><span class="val">焦糖 / 深咖 / 米白</span></div>
+    <div class="field"><span>放在哪里</span><span class="val">主卧衣柜 › 长挂区 ${I.chev}</span></div>
+    <div class="field"><span>风格</span><span class="val"><span class="ai">AI</span><span class="tag">法式</span><span class="tag">英伦</span>${I.chev}</span></div>
+    <div class="field"><span>季节</span><span class="val"><span class="tag">春</span><span class="tag">秋</span>${I.chev}</span></div>
+    <div class="field"><span>品牌 / 备注</span><span class="val">选填 ${I.chev}</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:auto 1fr;gap:10px;margin-top:16px"><button class="btn ghost">再拍一件</button><button class="btn primary" data-go="ward">保存到衣橱</button></div>`;
+},
+idle(){
+  const segs=[['all',`全部闲置 ${idle.all.length}`],['watch',`观察中 ${idle.watch.length}`],['gone',`已处置 ${idle.gone.length}`]];
+  const list=idle[S.seg];
+  const act=k=>S.seg==='all'?`<span class="acts"><button class="mini" data-watch="${k}">观察</button><button class="mini rose" data-dispose="${k}">处置</button></span>`:S.seg==='watch'?`<span class="acts"><button class="mini rose" data-dispose="${k}">处置</button></span>`:'';
+  const sum={};idle.gone.forEach(g=>{sum[g.m]=(sum[g.m]||0)+1});
+  const income=idle.gone.reduce((a,g)=>a+(g.price||0),0);
+  const goneHead=S.seg==='gone'?`<div class="card" style="margin-bottom:10px;font-size:13px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-weight:500">处置方式</span><span class="muted">二手收入 ¥${income}</span></div><div class="wrapchips">${Object.entries(sum).map(([m,n])=>`<span class="tag">${m} ${n}</span>`).join('')}</div></div>`:'';
+  return backBar('衣橱','ward')+`
+  <h2 class="title">闲置衣物</h2><p class="muted" style="margin:0 0 14px;font-size:13px">超过 90 天没穿会自动归入，数据来自每天确认的穿搭</p>
+  <div class="rate">
+    <div class="card">${ring(12,'#C9A8A1')}<div><b>12%</b><div class="muted" style="font-size:12px">闲置率</div></div></div>
+    <div class="card">${ring(29,'#9CAA97')}<div><b>29%</b><div class="muted" style="font-size:12px">处置率</div></div></div>
+  </div>
+  <div class="seg">${segs.map(([k,l])=>`<button data-seg="${k}" aria-pressed="${S.seg===k}">${l}</button>`).join('')}</div>
+  ${goneHead}${list.map((i,k)=>`<div class="row"><span class="ph" style="background:${i.bg}">${garment(i.t,i.col)}</span><span class="meta"><p>${i.n}</p><small>${i.d} · ${i.note}</small></span>${act(k)}</div>`).join('')}`;
+},
+look(){
+  return header('今日搭配')+`
+  <div class="weather"><div><div class="city">${I.pin} 上海 · 静安</div><div class="t">18°</div><p>多云 · 14° – 21° · 降水 20% · 午后有风</p></div>${I.cloud}</div>
+  <div class="h2">今天去哪儿</div>
+  <div class="chips">${scenes.map(c=>`<button class="chip" data-scene="${c}" aria-pressed="${S.scene===c}">${c}</button>`).join('')}</div>
+  <div class="h2"><span>为你搭了 3 套<small class="muted" style="font-family:var(--sans);font-weight:400;font-size:11.5px;margin-left:6px">点单品可替换</small></span><button data-act="regen">${'换一批'}</button></div>
+  <div class="carousel" id="car">${looks.map((l,k)=>`
+    <article class="look"><div class="head"><b>${l.name}</b><span class="lk-tags"><span class="tag">${S.scene}</span><span class="tag st">${l.style}</span></span></div>
+      <div class="flat" style="background:${l.bg}">${l.parts.map((p,j)=>`<button data-swap="${k}-${j}" aria-label="替换${p.label}" style="left:${p.x}%;top:${p.y}%;width:${p.w}%;height:${p.h}%">${garment(p.t,p.col)}</button>`).join('')}
+      ${S.swap&&S.swap[0]==k?swapPanel(l.parts[S.swap[1]]):''}</div>
+      <div class="accrow"><span class="albl">配饰</span>${l.acc.map(i=>`<span class="acc" title="${items[i].n}" style="background:${items[i].bg}">${garment(items[i].t,items[i].col)}</span>`).join('')}<span class="muted" style="font-size:11.5px">${l.acc.map(i=>items[i].n).join(' · ')}</span></div>
+      <div class="hairtip"><span class="hic">${I.hair}</span><div><b>发型建议 · ${l.hair[0]}</b><small>${l.hair[1]}</small><small style="opacity:.75">${l.hair[2]}</small></div></div>
+      <p class="why">${l.why}</p>
+      <div class="acts"><button class="btn primary" data-act="wear">${I.check}今天穿这套</button><button class="btn ghost heart" data-save="${l.name}" aria-pressed="${S.saved.has(l.name)}" aria-label="收藏这套">${S.saved.has(l.name)?'♥':'♡'}</button></div>
+    </article>`).join('')}</div>
+  <div class="dots">${looks.map((_,k)=>`<i class="${k===S.look?'on':''}"></i>`).join('')}</div>
+  ${S.confirmed?`<div class="done"><span style="color:#6E7B6A">${I.check}</span><div style="flex:1"><p>已记录今天的穿搭</p><small class="muted">4 件单品穿着次数 +1</small></div><button class="mini">拍一张</button></div>`:''}
+  <div class="h2">我的搭配<button data-go="history">全部 ${wornLog().length+S.saved.size} 套 ›</button></div>
+  ${histSeg()}
+  <div class="hist">${histList().slice(0,4).map(oc).join('')}</div>`;
+},
+insp(){
+  return header('收藏喜欢的穿搭')+`
+  <div class="profile">
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:var(--serif);font-weight:600;font-size:16px">我的风格画像</span><span class="muted" style="font-size:11.5px">基于 23 张灵感图</span></div>
+    <div class="bars">
+      <div class="bar"><span>法式</span><i style="width:100%;background:#C9A8A1"></i><span>42%</span></div>
+      <div class="bar"><span>日杂</span><i style="width:74%;background:#9CAA97"></i><span>31%</span></div>
+      <div class="bar"><span>极简</span><i style="width:43%;background:#A4B4BE"></i><span>18%</span></div>
+    </div>
+    <p style="margin:0;font-size:12.5px;line-height:1.7" class="muted">偏爱低饱和的米白、灰绿和豆沙色，常见风衣、针织和阔腿裤。最近收藏开始出现度假风。</p>
+  </div>
+  <div class="lib"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:var(--serif);font-weight:600;font-size:16px">风格库</span><span class="muted" style="font-size:11.5px">${styleLib.reduce((a,g)=>a+g[2].length,0)} 种 · 男女通用</span></div>
+    ${styleLib.map(([g,d,list])=>`<h4>${g}<i>${d}</i></h4><div class="wrapchips">${list.map(x=>{const h=hits[x];return `<span class="sty${h?' hit':''}">${x}${h?`<em>${h}%</em>`:''}</span>`}).join('')}</div>`).join('')}
+    <p class="muted" style="font-size:12px;margin:14px 0 0">AI 给每张灵感图打 1–3 个标签；深色是你的前 3 种风格。</p></div>
+  <div class="adds"><button>${I.cam}拍照</button><button>${I.album}相册</button><button>${I.paste}粘贴截图</button></div>
+  <div class="h2">灵感墙<span class="muted" style="font-family:var(--sans);font-size:12px;font-weight:400">全部 · 法式 · 日杂 · 度假</span></div>
+  <div class="masonry">${insp.map(x=>`<div class="insp"><div class="art" style="background:${x.bg};height:${x.h+40}px">${figure(x.top,x.bottom)}</div><div class="cap">${x.tags.map(t=>`<span class="tag"><span class="ai" style="padding:0 4px;margin-right:3px">AI</span>${t}</span>`).join('')}</div></div>`).join('')}</div>`;
+},
+me(){
+  return header('Muro')+`
+  <div class="stats"><div class="card"><b>48</b><span>单品</span></div><div class="card"><b>36</b><span>搭配</span></div><div class="card"><b>23</b><span>灵感</span></div></div>
+  <button class="report-card" data-go="report">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div><div class="m">September</div><div style="font-size:13px;margin-top:4px">九月衣橱报告已生成</div></div>${I.chev}</div>
+    <div class="strip">${[['#F1ECE3','#9CAA97'],['#A9B9C3','#B8977F'],['#D3B9B3','#C9A8A1'],['#BFA083','#6F625A'],['#EADFCB','#9CAA97']].map(([a,b])=>`<span>${figure(a,b)}</span>`).join('')}</div>
+  </button>
+  <div class="h2" style="margin-bottom:0">衣橱分布</div>
+  <div class="card" style="margin-top:12px">
+    ${[['上装',17,'#C9A8A1'],['下装',12,'#9CAA97'],['外套',6,'#B8977F'],['鞋履',7,'#A4B4BE'],['其他',6,'#D9C9A3']].map(([n,v,c])=>`<div class="bar" style="margin:4px 0"><span>${n}</span><i style="width:${v/17*100}%;background:${c}"></i><span>${v}</span></div>`).join('')}
+  </div>
+  <div class="list">
+    <div class="field" data-go="cabinet" style="cursor:pointer"><span>衣柜与分区</span><span class="val">3 个衣柜 · 13 个分区 ${I.chev}</span></div>
+    <div class="field"><span>闲置规则</span><span class="val">90 天 / 观察 30 天 ${I.chev}</span></div>
+    <div class="field"><span>iCloud 同步</span><span class="val" style="color:#6E7B6A">已开启 · 刚刚</span></div>
+    <div class="field"><span>发型建议依据</span><span class="val">中长发 · 偏直 ${I.chev}</span></div>
+    <div class="field"><span>每日穿搭提醒</span><span class="val">07:30 ${I.chev}</span></div>
+    <div class="field"><span>隐私与数据</span><span class="val">${I.chev}</span></div>
+  </div>`;
+},
+report(){
+  const days=30, start=1; // Sept 2026 starts on Tuesday
+  const tones=[['#F1ECE3','#9CAA97'],['#A9B9C3','#B8977F'],['#D3B9B3','#C9A8A1'],['#BFA083','#6F625A'],['#EADFCB','#9CAA97'],['#D8CBB6','#3E3A36']];
+  const worn=new Set([1,2,3,5,8,9,10,11,12,15,16,17,19,22,23,24,26,29]);
+  let cells=['一','二','三','四','五','六','日'].map(w=>`<span class="wk">${w}</span>`).join('')+'<span class="wk"></span>';
+  for(let d=1;d<=days;d++){const t=tones[d%tones.length];cells+=`<span><em>${d}</em>${worn.has(d)?figure(t[0],t[1]):''}</span>`}
+  return backBar('我的','me')+`
+  <div style="font-family:var(--latin);font-style:italic;font-size:40px;font-weight:600;line-height:1">September</div>
+  <h2 class="title" style="margin-top:6px">九月衣橱报告</h2>
+  <div class="stats" style="margin:14px 0"><div class="card"><b>18</b><span>穿着天数</span></div><div class="card"><b>+4</b><span>新增单品</span></div><div class="card"><b>2</b><span>已处置</span></div></div>
+  <div class="card"><div style="font-size:13px;font-weight:500;margin-bottom:10px">每日穿搭（人物抠图）</div><div class="cal">${cells}</div></div>
+  <div class="card" style="margin-top:12px"><div style="font-size:13px;font-weight:500;margin-bottom:8px">最常穿</div>
+    <div style="display:flex;gap:10px">${[items[8],items[3],items[0]].map(i=>`<div style="flex:1;text-align:center"><div class="ph" style="background:${i.bg};border-radius:14px;aspect-ratio:1;display:grid;place-items:center">${garment(i.t,i.col).replace('<svg','<svg style="width:76%"')}</div><small class="muted" style="font-size:11px">${i.n}</small></div>`).join('')}</div></div>
+  <div class="card" style="margin-top:12px"><div style="font-size:13px;font-weight:500;margin-bottom:8px"><span class="ai">AI</span> 本月小结</div>
+    <p class="quote">这个月你穿得最多的是灰绿和米白，通勤占了七成。灵感里喜欢的法式风，衣橱里只有风衣能对上。下个月可以试试把豆沙半裙和针织衫配在一起，它们已经两周没出场了。</p></div>`;
+}
+};
+const pastWorn=[
+  {d:'10月11日',w:'周日',scene:'休闲',style:'美式休闲',ids:[2,5,11,9],m:'October'},
+  {d:'10月10日',w:'周六',scene:'度假',style:'度假风',ids:[7,9,8],m:'October'},
+  {d:'10月9日',w:'周五',scene:'通勤',style:'极简',ids:[0,3,6,8],m:'October'},
+  {d:'10月8日',w:'周四',scene:'通勤',style:'极简',ids:[1,5,8,9],m:'October'},
+  {d:'10月6日',w:'周二',scene:'派对',style:'温柔知性',ids:[10,4,11],m:'October'},
+  {d:'9月29日',w:'周二',scene:'通勤',style:'极简',ids:[0,5,6,8],m:'September'},
+  {d:'9月27日',w:'周日',scene:'运动',style:'运动休闲',ids:[2,3,11],m:'September'},
+  {d:'9月26日',w:'周六',scene:'休闲',style:'美式休闲',ids:[1,4,11,9],m:'September'}
+];
+const savedPresets=[{d:'收藏于 10月3日',scene:'正式',style:'英伦',ids:[6,0,5,8],m:'October',name:'Look 秋日通勤'},{d:'收藏于 9月20日',scene:'度假',style:'度假风',ids:[7,11,9],m:'September',name:'Look 海边'}];
+function lookToIds(l){return l.parts.map(p=>items.findIndex(i=>i.n===p.label))}
+function wornLog(){return (S.confirmed?[{d:'10月12日',w:'今天',scene:S.scene,ids:lookToIds(looks[S.look]),style:looks[S.look].style,m:'October',today:true}]:[]).concat(pastWorn)}
+function savedLog(){return looks.filter(l=>S.saved.has(l.name)).map(l=>({d:'收藏于 今天',scene:S.scene,style:l.style,ids:lookToIds(l),m:'October',fav:true})).concat(savedPresets.map(x=>({...x,fav:true})))}
+function histList(){return S.hseg==='worn'?wornLog():savedLog()}
+function histSeg(){return `<div class="seg two"><button data-hseg="worn" aria-pressed="${S.hseg==='worn'}">已穿记录 ${wornLog().length}</button><button data-hseg="fav" aria-pressed="${S.hseg==='fav'}">收藏 ${savedLog().length}</button></div>`}
+function oc(x){const bgs=['#EDE6DB','#E3E8E0','#EBDCD7','#DCE3E7'];const bg=bgs[(x.ids[0]+x.ids.length)%4];
+  return `<div class="oc"><div class="quad" style="background:${bg}">${x.ids.slice(0,4).map(i=>`<span>${garment(items[i].t,items[i].col)}</span>`).join('')}</div><p><span>${x.w?x.d:x.d.replace('收藏于 ','')}</span><span class="tag">${x.scene} · ${x.style}</span></p><small>${x.fav?'♥ 已收藏':(x.today?'✓ 今天 · 已穿':'✓ '+x.w+' · 已穿')}</small></div>`}
+V.history=function(){
+  const list=histList(); let html='', last='';
+  list.forEach(x=>{ if(x.m!==last){ if(last) html+='</div>'; html+=`<div class="month">${x.m}</div><div class="hist">`; last=x.m;} html+=oc(x); });
+  if(last) html+='</div>';
+  return backBar('搭配','look')+`<h2 class="title">我的搭配</h2><p class="muted" style="margin:0 0 14px;font-size:13px">每次确认“今天穿这套”和点 ♡ 收藏的搭配都会保存在这里</p>${histSeg()}${html}`;
+};
+const cabs=[
+  {n:'主卧衣柜',cols:3,rows:4,zones:[
+    {id:'top',n:'顶柜 · 换季',area:'1/1/2/2',k:'shelf'},{id:'short',n:'短挂区',area:'2/1/5/2',k:'hang'},
+    {id:'long',n:'长挂区',area:'1/2/5/3',k:'hang'},{id:'fold1',n:'叠放层 上',area:'1/3/2/4',k:'shelf'},
+    {id:'fold2',n:'叠放层 下',area:'2/3/3/4',k:'shelf'},{id:'drawer',n:'抽屉',area:'3/3/4/4',k:'drawer'},{id:'shoe',n:'鞋层',area:'4/3/5/4',k:'shelf'}]},
+  {n:'次卧衣柜',cols:2,rows:3,zones:[
+    {id:'h2',n:'挂衣区',area:'1/1/4/2',k:'hang'},{id:'s1',n:'层板 1',area:'1/2/2/3',k:'shelf'},{id:'s2',n:'层板 2',area:'2/2/3/3',k:'shelf'},{id:'d2',n:'抽屉',area:'3/2/4/3',k:'drawer'}]},
+  {n:'换季收纳箱',cols:1,rows:2,zones:[{id:'b1',n:'上层 · 冬装',area:'1/1/2/2',k:'shelf'},{id:'b2',n:'下层 · 夏装',area:'2/1/3/2',k:'shelf'}]}
+];
+const cabCount=[32,11,5];
+const where=['short','fold1','short','fold2','short','fold2','long','long','shoe','top','fold1','shoe','drawer','drawer','drawer','top','fold1','drawer']; // item index -> zone
+function zoneOf(id){for(const c of cabs){const z=c.zones.find(z=>z.id===id);if(z)return [c,z]}return [cabs[0],cabs[0].zones[0]]}
+function locName(i){const [c,z]=zoneOf(i.z||where[items.indexOf(i)]);return `${c.n.replace('衣柜','')} · ${z.n.split(' · ')[0]}`}
+function zoneItems(id){return items.filter(i=>(i.z||where[items.indexOf(i)])===id)}
+V.cabinet=function(){
+  const c=cabs[S.cab]; if(!c.zones.find(z=>z.id===S.zone)) S.zone=c.zones[0].id;
+  const zone=c.zones.find(z=>z.id===S.zone), list=zoneItems(S.zone);
+  const cell=z=>{const its=zoneItems(z.id),n=its.length*2+(z.k==='hang'?3:1);
+    const inner=z.k==='hang'?`<span class="rod"></span><span class="hang">${its.slice(0,3).map(i=>garment(i.t,i.col)).join('')}</span>`:z.k==='drawer'?'<span class="drawer"></span>':'';
+    return `<button class="zone" data-zone="${z.id}" aria-pressed="${S.zone===z.id}" style="grid-area:${z.area}">${inner}<b>${z.n}</b>${S.editCab?'<span class="pen">✎ 改名</span>':''}<small>${n} 件</small></button>`};
+  return backBar('衣橱','ward')+`
+  <div style="display:flex;justify-content:space-between;align-items:flex-end"><div><h2 class="title">衣柜与分区</h2><p class="muted" style="margin:0 0 14px;font-size:13px">点分区查看里面的衣服，可以改名、增删分区</p></div></div>
+  <div class="cabtabs">${cabs.map((x,k)=>`<button class="cabtab" data-cab="${k}" aria-pressed="${S.cab===k}">${x.n}<small>${cabCount[k]} 件 · ${x.zones.length} 个分区</small></button>`).join('')}<button class="cabtab add">＋ 新建衣柜</button></div>
+  <div class="cabinet"><div class="cells" style="grid-template-columns:repeat(${c.cols},1fr);grid-template-rows:repeat(${c.rows},1fr);height:${c.rows*75}px">${c.zones.map(cell).join('')}</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+    <button class="btn ghost" data-act="editcab" style="height:40px;font-size:13.5px">${S.editCab?'完成编辑':'编辑分区'}</button>
+    <button class="btn ghost" style="height:40px;font-size:13.5px">＋ 添加分区</button></div>
+  ${S.editCab?'<p class="muted" style="font-size:12px;margin:8px 2px 0">编辑模式：点分区名改名，拖动边线调整大小，长按删除分区。删除时会让你选择把衣物移到哪里。</p>':''}
+  <div class="h2">${c.n} › ${zone.n}<span class="muted" style="font-family:var(--sans);font-size:12px;font-weight:400">${list.length} 件示例</span></div>
+  ${list.length?list.map(i=>`<div class="row"><span class="ph" style="background:${i.bg}">${garment(i.t,i.col)}</span><span class="meta"><p>${i.n}</p><small>${i.c} · 穿过 ${i.worn} 次</small></span><span class="acts"><button class="mini" data-move="${items.indexOf(i)}">移动</button></span></div>`).join(''):'<div class="card muted" style="text-align:center;font-size:13px">这个分区还是空的，录入衣物时选择放在这里</div>'}`;
+};
+const methods=[['二手卖出','记录售价和平台'],['送给朋友','记下送给谁'],['捐赠','公益机构或旧衣箱'],['旧衣回收','回收点或上门回收'],['改造','改成别的单品'],['丢弃','破损无法再穿']];
+function disposeSheet(){
+  if(!S.dispose) return '';
+  const it=idle[S.dispose[0]][S.dispose[1]], m=S.dmethod;
+  return `<div class="scrim" data-act="closedispose"></div><div class="sheet"><h3>处置「${it.n}」</h3><p class="muted" style="margin:0;font-size:12.5px">选择处置方式，会记入已处置并计算处置率</p>
+    <div class="dgrid">${methods.map(([n,d])=>`<button class="dopt" data-dm="${n}" aria-pressed="${m===n}"><b>${n}</b><small>${d}</small></button>`).join('')}</div>
+    ${m==='二手卖出'?`<div class="lbl">售价与平台（选填）</div><div style="display:flex;gap:8px;align-items:center"><span class="pricebox">¥ <input id="price" inputmode="numeric" value="${S.price}" placeholder="0"></span>${['闲鱼','转转','线下'].map(x=>`<button class="chip" data-plat="${x}" aria-pressed="${S.plat===x}">${x}</button>`).join('')}</div>`:''}
+    ${m==='送给朋友'?`<div class="lbl">送给谁（选填）</div><span class="pricebox" style="width:100%"><input id="who" placeholder="例如：小林" value="${S.who}"></span>`:''}
+    <div class="lbl">处置日期</div><div class="wrapchips"><button class="chip" aria-pressed="true">今天 10月12日</button><button class="chip">选择日期</button></div>
+    <button class="btn primary" data-act="dodispose" style="width:100%;margin-top:18px" ${m?'':'disabled'}>${m?'确认：'+m:'先选一种方式'}</button></div>`;
+}
+function moveSheet(){
+  if(S.move===null) return '';
+  const it=items[S.move], c=cabs[S.mvCab];
+  return `<div class="scrim" data-act="closemove"></div><div class="sheet"><h3>移动「${it.n}」</h3><p class="muted" style="margin:0;font-size:12.5px">现在在 ${zoneOf(it.z||where[S.move])[0].n} › ${zoneOf(it.z||where[S.move])[1].n}</p>
+    <div class="lbl">放到哪个衣柜</div><div class="chips">${cabs.map((x,k)=>`<button class="chip" data-mvcab="${k}" aria-pressed="${S.mvCab===k}">${x.n}</button>`).join('')}</div>
+    <div class="lbl">哪个分区</div><div class="chips" style="flex-wrap:wrap;margin:0;padding:0">${c.zones.map(z=>`<button class="chip" data-mvzone="${z.id}" aria-pressed="${S.mvZone===z.id}">${z.n}</button>`).join('')}</div>
+    <button class="btn primary" data-act="domove" style="width:100%;margin-top:18px" ${S.mvZone?'':'disabled'}>${S.mvZone?'移到 '+c.n+' › '+c.zones.find(z=>z.id===S.mvZone).n:'先选一个分区'}</button></div>`;
+}
+const styleLib=[
+  ['经典优雅','剪裁利落、质感优先',['法式','老钱风 / 静奢','英伦','学院风','复古','绅士']],
+  ['简约日常','少装饰、好搭配',['极简','日系简约','日杂 / 森系','韩系','北欧','Clean Fit']],
+  ['休闲街头','舒适、有态度',['美式休闲','阿美咔叽','City Boy','街头潮流','滑板','Y2K','工装']],
+  ['运动户外','功能面料与运动元素',['运动休闲','机能风','山系户外','网球风','瑜伽 / 普拉提']],
+  ['浪漫柔和','曲线、蕾丝、碎花',['甜美','芭蕾风','田园风','波西米亚','温柔知性']],
+  ['个性表达','强烈色彩或态度',['多巴胺 / 花里胡哨','暗黑','朋克','摇滚','嘻哈','先锋解构']],
+  ['东方','传统元素的现代穿法',['新中式','和风','民族风']],
+  ['场合','按场景划分的穿法',['商务正装','商务休闲','通勤','度假风','派对','居家']]
+];
+const hits={'法式':42,'日杂 / 森系':31,'极简':18};
+V.search=function(){
+  const cats=['上装','下装','外套','连衣裙','鞋履','包袋','配饰'];
+  const cols=[['白','#F1ECE3'],['米','#D8CBB6'],['蓝','#A9B9C3'],['绿','#9CAA97'],['粉','#C9A8A1'],['咖','#B8977F'],['黑','#4A433E']];
+  const colMap={'#F1ECE3':'白','#EADFCB':'白','#F3EFE8':'白','#D8CBB6':'米','#D9C9A3':'米','#A9B9C3':'蓝','#9CAA97':'绿','#C9A8A1':'粉','#D3B9B3':'粉','#B8977F':'咖','#BFA083':'咖','#6F625A':'黑'};
+  const q=S.q.trim();
+  const res=items.filter(i=>(!q||i.n.includes(q)||i.c.includes(q)||locName(i).includes(q))&&(!S.sc||i.c===S.sc)&&(!S.scol||colMap[i.col]===S.scol)&&(!S.sst||ST[items.indexOf(i)].includes(S.sst)));
+  const any=q||S.sc||S.scol||S.sst;
+  return backBar('衣橱','ward')+`
+  <label class="sbox">${I.search}<input id="q" type="search" placeholder="搜名称、颜色、分类、衣柜位置" value="${S.q}" autocomplete="off"></label>
+  ${any?'':`<div class="flabel">最近搜索</div><div class="wrapchips">${['风衣','阔腿裤','白','主卧 长挂区'].map(t=>`<button class="chip" data-q="${t}">${t}</button>`).join('')}</div>`}
+  <div class="flabel">分类</div><div class="wrapchips">${cats.map(c=>`<button class="chip" data-sc="${c}" aria-pressed="${S.sc===c}">${c}</button>`).join('')}</div>
+  <div class="flabel">颜色</div><div class="cdots">${cols.map(([n,c])=>`<button data-scol="${n}" aria-label="${n}色" aria-pressed="${S.scol===n}" style="background:${c}"></button>`).join('')}</div>
+  <div class="flabel">风格</div><div class="wrapchips">${['法式','极简','日杂 / 森系','英伦','温柔知性','度假风','美式休闲'].map(c=>`<button class="chip" data-sst="${c}" aria-pressed="${S.sst===c}">${c}</button>`).join('')}</div>
+  <div class="flabel">季节 · 场景</div><div class="wrapchips">${['春','夏','秋','冬','通勤','休闲','运动','正式'].map(c=>`<button class="chip">${c}</button>`).join('')}</div>
+  <div class="h2">${any?`找到 ${res.length} 件`:'全部单品'}${any?'<button data-act="clearq">清除</button>':''}</div>
+  ${res.length?`<div class="grid">${res.map(i=>`<div class="item"><div class="ph" style="background:${i.bg}">${garment(i.t,i.col)}</div><p>${i.n}</p><span class="loc">${locName(i)}</span></div>`).join('')}</div>`:'<div class="card muted" style="text-align:center;font-size:13px">没有找到，换个词试试，比如“衬衫”或“米色”</div>'}`;
+};
+function ring(p,c){const r=20,C=2*Math.PI*r;return `<svg width="50" height="50" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="${r}" fill="none" stroke="#EDE6DB" stroke-width="6"/><circle cx="25" cy="25" r="${r}" fill="none" stroke="${c}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C*p/100} ${C}" transform="rotate(-90 25 25)"/></svg>`}
+function swapPanel(p){
+  const alts=items.filter(i=>i.t===p.t||(['tee','shirt','knit'].includes(p.t)&&['tee','shirt','knit'].includes(i.t))).slice(0,4);
+  return `<div class="swap">替换「${p.label}」<div class="opts">${alts.map(i=>`<span style="background:${i.bg}" title="${i.n}">${garment(i.t,i.col)}</span>`).join('')}</div></div>`;
+}
+
+function render(){
+  const id=current(), sc=document.getElementById('screen');
+  sc.className='screen'+(S.sub?' sub':'');
+  sc.innerHTML=V[id]();
+  document.getElementById('tabbar').innerHTML=tabs.map(([k,l])=>`<button data-go="${k}" aria-current="${S.tab===k}">${I[k]}${l}<span class="dot"></span></button>`).join('');
+  document.getElementById('tabbar').hidden=!!S.sub;
+  document.getElementById('sheet').innerHTML=moveSheet()+disposeSheet();
+  document.getElementById('fab').hidden=id!=='ward';
+  document.getElementById('index').innerHTML=screens.map(([k,l,w])=>`<li><button data-go="${k}" aria-current="${id===k}">${l}<span>${w}</span></button></li>`).join('');
+  const car=document.getElementById('car');
+  if(car){car.scrollLeft=S.look*298;car.onscroll=()=>{const k=Math.round(car.scrollLeft/298);if(k!==S.look){S.look=k;document.querySelectorAll('.dots i').forEach((d,j)=>d.className=j===k?'on':'')}}}
+}
+document.addEventListener('input',e=>{
+  if(e.target.id==='price'){S.price=e.target.value.replace(/\D/g,'');return}
+  if(e.target.id==='who'){S.who=e.target.value;return}
+  if(e.target.id!=='q') return; S.q=e.target.value; const pos=e.target.selectionStart; render(); const n=document.getElementById('q'); n.focus(); try{n.setSelectionRange(pos,pos)}catch(_){}
+});
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button,[data-go],[data-act]'); if(!b) return;
+  if(b.id==='fab') return go('capture');
+  if(b.dataset.go) return go(b.dataset.go);
+  if(b.dataset.cat){S.cat=b.dataset.cat;S.sub2='';return render()}
+  if(b.dataset.sub){S.sub2=b.dataset.sub;return render()}
+  if(b.dataset.group){S.group=b.dataset.group;S.cat='全部';return render()}
+  if(b.dataset.sst){S.sst=S.sst===b.dataset.sst?'':b.dataset.sst;return render()}
+  if(b.dataset.seg){S.seg=b.dataset.seg;return render()}
+  if(b.dataset.scene){S.scene=b.dataset.scene;S.confirmed=false;return render()}
+  if(b.dataset.swap){const [k,j]=b.dataset.swap.split('-').map(Number);S.swap=(S.swap&&S.swap[0]===k&&S.swap[1]===j)?null:[k,j];S.look=k;return render()}
+  if(b.dataset.act==='wear'){S.confirmed=true;S.swap=null;S.hseg='worn';render();document.querySelector('.done')?.scrollIntoView({block:'center'});return}
+  if(b.dataset.save){const n=b.dataset.save;S.saved.has(n)?S.saved.delete(n):S.saved.add(n);return render()}
+  if(b.dataset.hseg){S.hseg=b.dataset.hseg;return render()}
+  if(b.dataset.q){S.q=b.dataset.q==='白'?'白':b.dataset.q;return render()}
+  if(b.dataset.sc){S.sc=S.sc===b.dataset.sc?'':b.dataset.sc;return render()}
+  if(b.dataset.scol){S.scol=S.scol===b.dataset.scol?'':b.dataset.scol;return render()}
+  if(b.dataset.dispose!==undefined){S.dispose=[S.seg,+b.dataset.dispose];S.dmethod=null;S.price='';S.who='';return render()}
+  if(b.dataset.watch!==undefined){const it=idle.all.splice(+b.dataset.watch,1)[0];it.d='观察剩余 30 天';it.note='观察期内穿一次即移出';idle.watch.unshift(it);return render()}
+  if(b.dataset.dm){S.dmethod=b.dataset.dm;return render()}
+  if(b.dataset.plat){S.plat=b.dataset.plat;return render()}
+  if(b.dataset.act==='closedispose'){S.dispose=null;return render()}
+  if(b.dataset.act==='dodispose'){const [sg,k]=S.dispose;const it=idle[sg].splice(k,1)[0];const m=S.dmethod;const pr=+S.price||0;
+    it.m=m;it.price=m==='二手卖出'?pr:0;it.d=m==='二手卖出'?`二手卖出${pr?' ¥'+pr:''} · ${S.plat}`:m==='送给朋友'&&S.who?`送给 ${S.who}`:m;it.note='2026-10-12';
+    idle.gone.unshift(it);S.dispose=null;S.seg='gone';return render()}
+  if(b.dataset.act==='clearq'){S.q='';S.sc='';S.scol='';S.sst='';return render()}
+  if(b.dataset.cab){S.cab=+b.dataset.cab;S.zone=cabs[S.cab].zones[0].id;return render()}
+  if(b.dataset.zone){S.zone=b.dataset.zone;return render()}
+  if(b.dataset.act==='editcab'){S.editCab=!S.editCab;return render()}
+  if(b.dataset.move){S.move=+b.dataset.move;S.mvCab=S.cab;S.mvZone=null;return render()}
+  if(b.dataset.mvcab){S.mvCab=+b.dataset.mvcab;S.mvZone=null;return render()}
+  if(b.dataset.mvzone){S.mvZone=b.dataset.mvzone;return render()}
+  if(b.dataset.act==='closemove'){S.move=null;return render()}
+  if(b.dataset.act==='domove'){items[S.move].z=S.mvZone;S.cab=S.mvCab;S.zone=S.mvZone;S.move=null;return render()}
+  if(b.dataset.act==='regen'){looks.push(looks.shift());S.swap=null;return render()}
+});
+render();
+</script>
+
+</body></html>
