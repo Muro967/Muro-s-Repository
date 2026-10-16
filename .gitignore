@@ -8,5 +8,6 @@ test-results/
 *.tsbuildinfo
 .data/
 .env
+.env.local
 .env.*.local
 !.env.example
