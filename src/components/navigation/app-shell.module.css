@@ -1,0 +1,14 @@
+.shell {
+  min-height: 100vh;
+  min-height: 100svh;
+  max-width: var(--content-max);
+  margin-inline: auto;
+}
+
+.content {
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  padding-bottom: calc(var(--tab-height) + 46px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  overflow-wrap: anywhere;
+}

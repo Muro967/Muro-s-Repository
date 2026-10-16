@@ -1,5 +1,31 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Cormorant_Garamond, Noto_Sans_SC, Noto_Serif_SC } from "next/font/google";
+import "@/styles/global.css";
+
+const latin = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  style: ["italic"],
+  display: "swap",
+  variable: "--font-cormorant-garamond",
+});
+
+const serif = Noto_Serif_SC({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  display: "swap",
+  preload: false,
+  variable: "--font-noto-serif-sc",
+});
+
+const sans = Noto_Sans_SC({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  display: "swap",
+  preload: false,
+  variable: "--font-noto-sans-sc",
+});
 
 export const metadata: Metadata = {
   title: "AI Wardrobe",
@@ -15,7 +41,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" className={`${latin.variable} ${serif.variable} ${sans.variable}`}>
       <body>{children}</body>
     </html>
   );

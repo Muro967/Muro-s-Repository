@@ -1,8 +1,10 @@
+import { BrandHeader } from "@/components/brand/brand-header";
+import { AppShell } from "@/components/navigation/app-shell";
+
 export default function RootPage() {
   return (
-    <main>
-      <h1>AI Wardrobe</h1>
-      <p>穿你所有，爱你所穿</p>
-    </main>
+    <AppShell activeTab="wardrobe">
+      <BrandHeader />
+    </AppShell>
   );
 }

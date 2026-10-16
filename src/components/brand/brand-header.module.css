@@ -1,0 +1,38 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--latin);
+  font-size: 30px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.title em {
+  color: var(--clay);
+  font-style: inherit;
+}
+
+.tagline {
+  margin: 8px 0 0;
+  color: var(--ink-2);
+  font-family: var(--serif);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

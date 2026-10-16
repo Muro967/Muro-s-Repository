@@ -1,0 +1,21 @@
+:root {
+  --paper: #f2eee8;
+  --card: #fbf9f6;
+  --ink: #3e3a36;
+  --ink-2: #857d75;
+  --line: #e4ddd3;
+  --sage-dark: #6e7b6a;
+  --sage: #9caa97;
+  --rose: #c9a8a1;
+  --rose-light: #ebdcd7;
+  --mist: #a4b4be;
+  --mist-light: #dce3e7;
+  --clay: #b8977f;
+  --oat: #e8e0d4;
+  --butter: #d9c9a3;
+  --radius-card: 24px;
+  --radius-item: 18px;
+  --radius-pill: 999px;
+  --content-max: 480px;
+  --tab-height: 64px;
+}
