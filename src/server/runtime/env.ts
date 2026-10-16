@@ -41,3 +41,13 @@ export function readServerEnv(
 
   return result.data;
 }
+
+export function readInvitePepper(
+  environment: Record<string, string | undefined> = process.env,
+): string {
+  const result = z.string().min(32).safeParse(environment.INVITE_PEPPER);
+  if (!result.success) {
+    throw new Error("Invalid invitation configuration");
+  }
+  return result.data;
+}
