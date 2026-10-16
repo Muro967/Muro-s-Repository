@@ -19,6 +19,7 @@
     "invite:create": "tsx scripts/create-invite.ts"
   },
   "dependencies": {
+    "@next/env": "^16.4.1",
     "@electric-sql/pglite": "^0.5.10",
     "@node-rs/argon2": "^2.2.2",
     "drizzle-orm": "^0.45.4",

@@ -1,9 +1,13 @@
 import { randomBytes } from "node:crypto";
+import { createRequire } from "node:module";
 
 import { hashInviteCode } from "../src/features/auth/crypto";
 import { DrizzleAuthRepository } from "../src/server/db/drizzle-auth-repository";
 import { getDb } from "../src/server/runtime/db";
-import { readInvitePepper } from "../src/server/runtime/env";
+import { readInvitePepper, readServerEnv } from "../src/server/runtime/env";
+
+const { loadEnvConfig } = createRequire(import.meta.url)("@next/env") as typeof import("@next/env");
+const quietLogger = { info() {}, error() {} };
 
 function positiveInteger(value: string | undefined, flag: string): number {
   const parsed = Number(value);
@@ -36,7 +40,18 @@ async function closeDatabase(database: ReturnType<typeof getDb>) {
 }
 
 async function main() {
+  loadEnvConfig(
+    process.cwd(),
+    process.env.NODE_ENV === "development",
+    quietLogger,
+  );
   const { uses, days } = readArguments(process.argv.slice(2));
+  const environment = readServerEnv();
+  if (!environment.DATABASE_URL && !environment.PGLITE_DATA_DIR) {
+    throw new Error(
+      "Invite creation requires durable database configuration (DATABASE_URL or PGLITE_DATA_DIR)",
+    );
+  }
   const pepper = readInvitePepper();
   const rawCode = randomBytes(18).toString("base64url");
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1_000);

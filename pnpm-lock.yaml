@@ -11,6 +11,9 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.10
         version: 0.5.10
+      '@next/env':
+        specifier: ^16.4.1
+        version: 16.4.1
       '@node-rs/argon2':
         specifier: ^2.2.2
         version: 2.2.2
