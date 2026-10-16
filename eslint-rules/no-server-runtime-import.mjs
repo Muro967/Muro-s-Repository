@@ -2,6 +2,27 @@ import path from "node:path";
 
 const aliasRuntimePattern = /^@\/server\/runtime(?:\/|$)/;
 const absoluteRuntimeSegment = `${path.sep}src${path.sep}server${path.sep}runtime`;
+const trustedRuntimeImporters = new Set([
+  "src/server/db/client.ts",
+  "src/server/env.ts",
+]);
+const trustedRuntimeImporterRoots = [
+  "src/server/runtime/",
+  "scripts/",
+  "tests/",
+];
+
+function toProjectPath(filename, cwd) {
+  return path.relative(cwd, filename).split(path.sep).join("/");
+}
+
+function isTrustedRuntimeImporter(filename, cwd) {
+  const projectPath = toProjectPath(filename, cwd);
+  return (
+    trustedRuntimeImporters.has(projectPath) ||
+    trustedRuntimeImporterRoots.some((root) => projectPath.startsWith(root))
+  );
+}
 
 function isServerRuntimeImport(importPath, filename) {
   if (aliasRuntimePattern.test(importPath)) {
@@ -26,45 +47,36 @@ function isServerRuntimeImport(importPath, filename) {
   );
 }
 
-function hasClientDirective(program) {
-  return program.body.some(
-    (node) => node.type === "ExpressionStatement" && node.directive === "use client",
-  );
-}
-
-const noServerRuntimeInClient = {
+const noServerRuntimeImport = {
   meta: {
     type: "problem",
     docs: {
       description:
-        "Prevent client components from bypassing guarded server entry points",
+        "Limit server runtime imports to explicit trusted entry points",
     },
     schema: [],
     messages: {
-      serverRuntimeInClient:
-        "Client modules cannot import server runtime internals. Use a server action, route handler, or guarded server entry point.",
+      serverRuntimeOutsideBoundary:
+        "Server runtime internals may only be imported by guarded wrappers, runtime modules, trusted CLI scripts, or tests.",
     },
   },
   create(context) {
-    let isClientModule = false;
+    const cwd = context.cwd ?? process.cwd();
 
     function reportRestrictedSource(node, source) {
       if (
-        isClientModule &&
         typeof source.value === "string" &&
-        isServerRuntimeImport(source.value, context.physicalFilename)
+        isServerRuntimeImport(source.value, context.physicalFilename) &&
+        !isTrustedRuntimeImporter(context.physicalFilename, cwd)
       ) {
         context.report({
           node,
-          messageId: "serverRuntimeInClient",
+          messageId: "serverRuntimeOutsideBoundary",
         });
       }
     }
 
     return {
-      Program(node) {
-        isClientModule = hasClientDirective(node);
-      },
       ImportDeclaration(node) {
         reportRestrictedSource(node, node.source);
       },
@@ -83,4 +95,4 @@ const noServerRuntimeInClient = {
   },
 };
 
-export default noServerRuntimeInClient;
+export default noServerRuntimeImport;
