@@ -5,6 +5,8 @@ import { afterEach, vi } from "vitest";
 
 import { readServerEnv } from "@/server/env";
 
+vi.mock("server-only", () => ({}));
+
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
