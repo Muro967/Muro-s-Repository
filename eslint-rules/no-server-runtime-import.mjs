@@ -5,6 +5,7 @@ const absoluteRuntimeSegment = `${path.sep}src${path.sep}server${path.sep}runtim
 const trustedRuntimeImporters = new Set([
   "src/server/db/client.ts",
   "src/server/env.ts",
+  "src/server/auth.ts",
 ]);
 const trustedRuntimeImporterRoots = [
   "src/server/runtime/",
