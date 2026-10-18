@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { hashInviteCode } from "@/features/auth/crypto";
 import { migrateDatabase } from "@/server/db/migrate";
 import { inviteCodes } from "@/server/db/schema";
@@ -8,9 +9,13 @@ import { getDb } from "@/server/runtime/db";
 
 vi.mock("server-only", () => ({}));
 const cookieState = vi.hoisted(() => ({ value: "" }));
-vi.mock("next/headers", () => ({ cookies: async () => ({
-  getAll: (name: string) => cookieState.value ? [{ name, value: cookieState.value }] : [],
-}) }));
+vi.mock("next/headers", async () => {
+  const { NextRequest } = await import("next/server");
+  const request = () => new NextRequest("http://localhost:3000", {
+    headers: cookieState.value ? { cookie: cookieState.value } : {},
+  });
+  return { headers: async () => request().headers, cookies: async () => request().cookies };
+});
 
 afterEach(() => { vi.unstubAllEnvs(); cookieState.value = ""; });
 
@@ -46,11 +51,29 @@ describe("production authentication bindings", () => {
         password: "production-password", name: "Production" }),
     }));
     expect(response.status).toBe(201);
-    cookieState.value = response.headers.get("set-cookie")!.match(/aiw_session=([^;]+)/)![1]!;
-    const cookie = `aiw_session=${cookieState.value}`;
+    const token = response.headers.get("set-cookie")!.match(/aiw_session=([^;]+)/)![1]!;
+    const cookie = `aiw_session=${token}`;
+    cookieState.value = cookie;
     const { getCurrentUser } = await import("@/features/auth/current-user");
     expect(await getCurrentUser()).toMatchObject({ email: "production@example.com" });
     expect((await session(new Request("http://localhost:3000/api/auth/session", { headers: { cookie } }))).status).toBe(200);
+
+    // Real Next RequestCookies collapses duplicate names; only raw headers retain ambiguity.
+    for (const badCookie of [
+      `aiw_session=invalid; ${cookie}`,
+      `${cookie}; ${cookie}`,
+      `${cookie}; aiw_session=invalid`,
+      "aiw_session=short",
+      "aiw_session=bad%20token",
+      `aiw_session=${"a".repeat(257)}`,
+    ]) {
+      cookieState.value = badCookie;
+      const request = new NextRequest("http://localhost:3000/api/auth/session", { headers: { cookie: badCookie } });
+      expect(request.cookies.getAll("aiw_session")).toHaveLength(1);
+      expect((await session(request)).status).toBe(401);
+      expect(await getCurrentUser()).toBeNull();
+    }
+    cookieState.value = cookie;
     expect((await login(new Request("http://localhost:3000/api/auth/login", {
       method: "POST", headers: { origin: "http://localhost:3000", host: "localhost:3000",
         "content-type": "application/json" },

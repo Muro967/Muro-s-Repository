@@ -62,13 +62,10 @@ function forwardedParameters(value: string): Map<string, string> {
   return parameters;
 }
 
-/** Rejects unsafe state-changing requests unless every supplied authority agrees with APP_URL. */
+/** APP_URL pins the public authority; the Node adapter's URL may use an internal listener. */
 export function assertSameOrigin(request: Request, appUrl: string): void {
   try {
     const expected = configuredOrigin(appUrl);
-    const requestUrl = new URL(request.url);
-    if (requestUrl.origin !== expected.origin) throw new OriginMismatchError();
-
     const originHeader = request.headers.get("origin");
     if (!originHeader || originHeader.trim() === "null") {
       throw new OriginMismatchError();

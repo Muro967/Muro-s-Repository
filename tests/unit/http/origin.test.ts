@@ -67,16 +67,19 @@ describe("assertSameOrigin", () => {
     ).toThrow("ORIGIN_MISMATCH");
   });
 
-  it("rejects a request URL outside the configured origin even when Origin and Host are valid", () => {
+  it.each(["http://localhost:3000", "https://localhost:3000"])(
+    "accepts an internal Next adapter URL %s when public authority headers match APP_URL", (internalOrigin) => {
     expect(() =>
       assertSameOrigin(
         postRequest(
-          { origin: "https://wardrobe.example", host: "wardrobe.example" },
-          "https://attacker.example/api/auth/logout",
+          { origin: "https://wardrobe.example", host: "wardrobe.example",
+            forwarded: 'for=192.0.2.10;proto=https;host="wardrobe.example"',
+            "x-forwarded-host": "wardrobe.example", "x-forwarded-proto": "https" },
+          `${internalOrigin}/api/auth/logout`,
         ),
         "https://wardrobe.example",
       ),
-    ).toThrow("ORIGIN_MISMATCH");
+    ).not.toThrow();
   });
 
   it("accepts a request whose URL and all authority headers match the configured app origin", () => {

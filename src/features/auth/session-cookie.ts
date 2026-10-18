@@ -33,7 +33,7 @@ export function parseSessionToken(token: unknown): string | null {
   return result.success ? result.data : null;
 }
 
-export function requestSessionToken(request: Request): string | null {
+export function requestSessionToken(request: Pick<Request, "headers">): string | null {
   const cookieHeader = request.headers.get("cookie");
   if (!cookieHeader) return null;
   const values = cookieHeader.split(";").flatMap((part) => {
