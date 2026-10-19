@@ -1,0 +1,47 @@
+.editor { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); min-width: 0; }
+.heading { margin: 16px 0 20px; }
+.heading h1 { font-family: var(--serif); font-size: 24px; font-weight: 600; margin: 0 0 5px; }
+.heading p, .hint { color: var(--ink-2); font-size: 12px; margin: 6px 0 12px; }
+.preview { aspect-ratio: 1; background: var(--oat); border-radius: 24px; overflow: hidden; display: grid; place-items: center; }
+.preview img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
+.photoEmpty { text-align: center; color: var(--ink-2); padding: 20px; }
+.photoEmpty > span { font-family: var(--serif); font-size: 44px; font-weight: 300; color: var(--sage-dark); }
+.photoEmpty p { font-family: var(--serif); font-size: 18px; margin: 4px 0; color: var(--ink); }
+.photoEmpty small { font-size: 12px; }
+.photoPicker { margin-top: 12px; }
+.photoActions { display: flex; gap: 10px; }
+.photoActions button, .secondary { border: 0; border-radius: var(--radius-pill); background: var(--oat); padding: 10px 16px; min-height: 46px; }
+.photoActions button { flex: 1; background: var(--card); }
+.status { color: var(--sage-dark); font-size: 13px; margin: 4px 0 12px; min-height: 21px; }
+.card { min-width: 0; margin: 0; border: 0; padding: 6px 16px; background: var(--card); border-radius: 24px; }
+.field, .row, .seasonRow { display: grid; grid-template-columns: minmax(68px, .65fr) minmax(0, 1.7fr); gap: 8px; align-items: center; min-height: 61px; border-bottom: 1px solid var(--line); }
+.card > :last-child { border-bottom: 0; }
+.field input, .field select, .field textarea { width: 100%; min-width: 0; max-width: 100%; border: 0; border-radius: 8px; background: transparent; padding: 10px 4px; font-size: 14px; }
+.field input::placeholder, .field textarea::placeholder { color: var(--ink-2); opacity: .9; }
+.field select { appearance: auto; }
+.row button { border: 0; background: transparent; text-align: right; padding: 8px 0; color: var(--ink-2); overflow-wrap: anywhere; }
+.colorHelp { font-size: 11px; color: var(--ink-2); padding: 7px 0; border-bottom: 1px solid var(--line); }
+.swatches { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+.swatches > span { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chips button { border: 0; border-radius: 24px; background: var(--oat); padding: 8px 13px; min-height: 44px; }
+.chips button[aria-pressed="true"] { background: var(--sage-dark); color: white; }
+.seasonRow { padding: 8px 0; }
+.seasonRow .chips { justify-content: flex-end; gap: 4px; }
+.seasonRow button { padding: 8px; }
+.details { margin: 14px 0; }
+.details summary { padding: 12px 0; min-height: 44px; cursor: pointer; font-family: var(--serif); font-size: 16px; }
+.details summary span { display: block; font-family: var(--sans); font-size: 11px; color: var(--ink-2); }
+.details[open] .card { margin-top: 8px; }
+.notes { align-items: start; padding-top: 8px; }
+.footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
+.primary { border: 0; background: var(--sage-dark); color: white; padding: 11px 16px; border-radius: var(--radius-pill); min-height: 46px; }
+.footer .primary { grid-column: 1 / -1; }
+.footer a { text-decoration: none; text-align: center; }
+.error { background: var(--rose-light); border-radius: 14px; padding: 12px 14px; font-size: 13px; overflow-wrap: anywhere; }
+.error p { margin: 0 0 8px; }
+.error button, .clearLocation { border: 1px solid var(--line); border-radius: 22px; background: var(--card); padding: 9px 16px; min-height: 44px; }
+.clearLocation, .sheetDone { width: 100%; margin-top: 16px; }
+.editor button:disabled { opacity: .5; cursor: default; }
+.visuallyHidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 350px) { .card { padding-inline: 12px; } .field, .row, .seasonRow { grid-template-columns: minmax(62px, .65fr) minmax(0, 1.7fr); gap: 4px; } .seasonRow { grid-template-columns: 54px minmax(0, 1fr); } .seasonRow button { padding-inline: 6px; } }
