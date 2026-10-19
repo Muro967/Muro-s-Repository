@@ -15,6 +15,10 @@ export type ApiErrorCode =
   | "NOT_FOUND"
   | "LOCATION_REQUIRED"
   | "LAST_WARDROBE"
+  | "ITEM_INCOMPLETE"
+  | "ITEM_NOT_EDITABLE"
+  | "INVALID_IMAGE"
+  | "ASSET_CONFLICT"
   | "INTERNAL_ERROR";
 
 export type ApiErrorBody = {
