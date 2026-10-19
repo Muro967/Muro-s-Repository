@@ -2,6 +2,7 @@
 import sharp from "sharp";
 import { createItemService } from "@/features/items/item-service";
 import { itemFixture } from "../../helpers/item-fixture";
+import { animatedPng, pngChunk, staticPngWithMarker } from "../../helpers/png-fixtures";
 
 vi.mock("server-only", () => ({}));
 let f: Awaited<ReturnType<typeof itemFixture>>;
@@ -83,6 +84,50 @@ test("binds idempotently, replaces atomically and serializes competing claims wi
   await expect(f.service.attachOriginal(f.user.id, a.id, third.id)).rejects.toThrow("Item persistence failed");
   expect((await f.service.readItem(f.user.id, a.id)).original).toEqual(before);
   expect(f.provider.objects.size).toBe(3);
+});
+
+test("rejects real two-frame APNG despite sharp exposing only its first frame and preserves the original", async () => {
+  const bytes = animatedPng();
+  expect(await sharp(bytes, { animated: true }).metadata()).toMatchObject({ format: "png", width: 2, height: 2 });
+  expect(await sharp(bytes, { animated: true }).raw().toBuffer()).toEqual(Buffer.from([255, 0, 0, 255, 0, 0, 255, 0, 0, 255, 0, 0]));
+  const item = await f.service.createDraft(f.user.id, f.complete);
+  const original = await f.upload();
+  await f.service.attachOriginal(f.user.id, item.id, original.id);
+  const before = (await f.service.readItem(f.user.id, item.id)).original;
+  const upload = await f.upload(bytes, { contentType: "image/png" });
+  await expect(f.service.attachOriginal(f.user.id, item.id, upload.id)).rejects.toMatchObject({ code: "INVALID_IMAGE" });
+  expect((await f.service.readItem(f.user.id, item.id)).original).toEqual(before);
+  expect(f.provider.objects.get(original.objectKey)).toEqual(original.data);
+});
+
+test("accepts acTL bytes inside PNG pixel data while rejecting animation chunks anywhere in the stream", async () => {
+  const item = await f.service.createDraft(f.user.id, f.complete);
+  const png = staticPngWithMarker();
+  expect(png.includes(Buffer.from("acTL"))).toBe(true);
+  const original = await f.upload(png, { contentType: "image/png" });
+  await f.service.attachOriginal(f.user.id, item.id, original.id);
+  const before = (await f.service.readItem(f.user.id, item.id)).original;
+  const control = pngChunk("acTL", Buffer.from([0, 0, 0, 2, 0, 0, 0, 0]));
+  for (const bytes of [Buffer.concat([png.subarray(0, 33), control, png.subarray(33)]), Buffer.concat([png.subarray(0, -12), control, png.subarray(-12)]), Buffer.concat([png, control])]) {
+    const upload = await f.upload(bytes, { contentType: "image/png" });
+    await expect(f.service.attachOriginal(f.user.id, item.id, upload.id)).rejects.toMatchObject({ code: "INVALID_IMAGE" });
+    expect((await f.service.readItem(f.user.id, item.id)).original).toEqual(before);
+  }
+});
+
+test("rejects PNG signature and chunk boundary corruption without replacing an original", async () => {
+  const item = await f.service.createDraft(f.user.id, f.complete);
+  const original = await f.upload();
+  await f.service.attachOriginal(f.user.id, item.id, original.id);
+  const before = (await f.service.readItem(f.user.id, item.id)).original;
+  const png = staticPngWithMarker();
+  const signature = Buffer.from(png); signature[0] = 0;
+  const oversized = Buffer.from(png); oversized.writeUInt32BE(0xffff_ffff, 33);
+  for (const bytes of [signature, oversized, png.subarray(0, -1), Buffer.concat([png, Buffer.from([0, 0, 0])])]) {
+    const upload = await f.upload(bytes, { contentType: "image/png" });
+    await expect(f.service.attachOriginal(f.user.id, item.id, upload.id)).rejects.toMatchObject({ code: "INVALID_IMAGE" });
+    expect((await f.service.readItem(f.user.id, item.id)).original).toEqual(before);
+  }
 });
 
 test("accepts decoded PNG and WebP, replaces the binding and leaves the former object private", async () => {

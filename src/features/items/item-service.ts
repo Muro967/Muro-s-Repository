@@ -33,6 +33,29 @@ export function itemResourceId(id: string) {
   if (!z.uuid().safeParse(id).success) throw new ItemError("NOT_FOUND");
   return id;
 }
+function assertStaticPng(bytes: Buffer): void {
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  if (!bytes.subarray(0, 8).equals(signature)) throw new ItemError("INVALID_IMAGE");
+  let offset = 8;
+  let ended = false;
+  while (offset < bytes.length) {
+    // A chunk needs its length, four-byte type, payload and four-byte CRC.
+    const remaining = bytes.length - offset;
+    if (remaining < 12) throw new ItemError("INVALID_IMAGE");
+    const length = bytes.readUInt32BE(offset);
+    if (length > remaining - 12) throw new ItemError("INVALID_IMAGE");
+    const type = bytes.toString("ascii", offset + 4, offset + 8);
+    // libvips can expose only APNG's default image, without metadata.pages.
+    if (type === "acTL" || type === "fcTL" || type === "fdAT") throw new ItemError("INVALID_IMAGE");
+    offset += length + 12;
+    if (ended) throw new ItemError("INVALID_IMAGE");
+    if (type === "IEND") {
+      if (length !== 0) throw new ItemError("INVALID_IMAGE");
+      ended = true;
+    }
+  }
+  if (!ended) throw new ItemError("INVALID_IMAGE");
+}
 async function verifyImage(upload: OriginalUpload, provider: StorageProvider): Promise<VerifiedImage> {
   const stream = await provider.openObject(upload.objectKey);
   const reader = stream.getReader();
@@ -48,6 +71,7 @@ async function verifyImage(upload: OriginalUpload, provider: StorageProvider): P
     }
     if (size !== upload.sizeBytes) throw new ItemError("INVALID_IMAGE");
     const bytes = Buffer.concat(chunks);
+    if (upload.contentType === "image/png") assertStaticPng(bytes);
     const options = { limitInputPixels: 40_000_000, failOn: "warning" as const, animated: true };
     const metadata = await sharp(bytes, options).metadata();
     const mime = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" }[metadata.format as string];
