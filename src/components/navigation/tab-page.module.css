@@ -12,3 +12,7 @@
 .row dt { color: var(--ink-2); }
 .row dd { margin: 0; overflow-wrap: anywhere; }
 .connected { color: var(--sage-dark); }
+.headingRow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 24px 0 16px; }
+.headingRow .heading { margin: 0; }
+.managementLink { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); text-decoration: none; }
+.settingsLink { display: flex; align-items: center; justify-content: space-between; min-height: 58px; padding: 12px 20px; margin-bottom: 20px; border-radius: var(--radius-card); background: var(--card); text-decoration: none; }

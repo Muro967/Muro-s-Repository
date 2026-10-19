@@ -1,0 +1,4 @@
+.shell { min-height: 100svh; max-width: var(--content-max); margin-inline: auto; }
+.content { padding: calc(12px + env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px)); overflow-wrap: anywhere; }
+.back { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 15px; color: var(--ink-2); text-decoration: none; }
+.back span { font: 32px/1 var(--sans); }

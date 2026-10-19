@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { BrandHeader } from "@/components/brand/brand-header";
 import { AppShell } from "@/components/navigation/app-shell";
 import { getCurrentUser } from "@/features/auth/current-user";
@@ -19,6 +20,6 @@ export default async function ProfilePage() {
       <div className={styles.row}><dt>常用城市</dt><dd>{settings.city}</dd></div>
       <div className={styles.row}><dt>发型建议依据</dt><dd>{settings.hairLength} · {settings.hairTexture}</dd></div>
       <div className={styles.row}><dt>云端同步</dt><dd className={styles.connected}>已连接</dd></div>
-    </dl><LogoutButton />
+    </dl><Link className={styles.settingsLink} href="/app/wardrobes">衣柜与分区<span aria-hidden="true">›</span></Link><LogoutButton />
   </AppShell>;
 }

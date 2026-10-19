@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import WardrobePage from "@/app/(app)/app/wardrobe/page";
+import WardrobesPage from "@/app/(app)/app/wardrobes/page";
 import OutfitsPage from "@/app/(app)/app/outfits/page";
 import InspirationPage from "@/app/(app)/app/inspiration/page";
 import { LogoutButton } from "@/features/auth/logout-button";
@@ -24,6 +25,18 @@ test("logs out through the server before returning to login", async () => {
   render(<LogoutButton submit={async () => ({ ok: true, value: { ok: true } })} />);
   await userEvent.setup().click(screen.getByRole("button", { name: "退出登录" }));
   expect(replace).toHaveBeenCalledWith("/login");
+});
+
+test("opens wardrobe management from home and preserves a return route without primary tabs", async () => {
+  const home = render(<WardrobePage />);
+  expect(screen.getByRole("link", { name: /衣柜与分区/ })).toHaveAttribute("href", "/app/wardrobes");
+  home.unmount();
+  vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ wardrobes: [] })));
+  render(<WardrobesPage />);
+  expect(screen.getByRole("link", { name: "返回衣橱" })).toHaveAttribute("href", "/app/wardrobe");
+  expect(screen.queryByRole("navigation", { name: "主要页面" })).not.toBeInTheDocument();
+  await screen.findByRole("button", { name: "＋ 新建衣柜" });
+  vi.unstubAllGlobals();
 });
 test("preserves retry control after a logout failure", async () => {
   render(<LogoutButton submit={async () => ({ ok: false, error: { code: "NETWORK_ERROR", message: "请检查网络连接后重试" } })} />);

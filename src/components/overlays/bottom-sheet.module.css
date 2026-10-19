@@ -1,0 +1,8 @@
+.backdrop { position: fixed; z-index: 100; inset: 0; display: flex; align-items: flex-end; justify-content: center; background: rgb(62 58 54 / 25%); padding-top: max(24px, env(safe-area-inset-top, 0px)); }
+.sheet { width: 100%; max-width: var(--content-max); max-height: calc(100dvh - max(24px, env(safe-area-inset-top, 0px))); overflow-y: auto; overscroll-behavior: contain; padding: 20px max(20px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px)); border-radius: 26px 26px 0 0; background: var(--card); box-shadow: 0 -12px 40px rgb(62 58 54 / 8%); overflow-wrap: anywhere; animation: arrive 180ms ease-out; }
+.heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.heading h2 { margin: 6px 0 0; font: 600 20px/1.5 var(--serif); }
+.heading button { flex-shrink: 0; border: 0; border-radius: 50%; background: var(--paper); font-size: 24px; }
+.description { margin: 0 0 22px; color: var(--ink-2); }
+@keyframes arrive { from { transform: translateY(18px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
