@@ -109,10 +109,20 @@ test("production bindings lazily use the configured local provider and real auth
     await database.insert(sessions).values({ userId: userA, tokenHash: hashSessionToken(token(userA)), expiresAt: new Date("2030-01-01Z") });
     const { POST } = await import("@/app/api/uploads/route"); const { PUT } = await import("@/app/api/uploads/[uploadId]/content/route");
     const { POST: complete } = await import("@/app/api/uploads/[uploadId]/complete/route");
-    const created = await POST(request("POST", input)); expect(created.status).toBe(201);
+    const nextStaticPost = POST as unknown as (request: Request, context: { params: undefined }) => Promise<Response>;
+    const created = await nextStaticPost(request("POST", input), { params: undefined }); expect(created.status).toBe(201);
     const { uploadId } = await created.json(); const context = { params: Promise.resolve({ uploadId }) };
     expect((await PUT(request("PUT", "abc", userA, { "content-type": "image/jpeg", "content-length": "3" }), context)).status).toBe(200);
     expect(await (await complete(request("POST"), context)).json()).toEqual({ uploadId, status: "completed" });
+
+    const nextDynamicPut = PUT as unknown as (request: Request, context: { params: undefined }) => Promise<Response>;
+    const missingParams = await nextDynamicPut(request("PUT"), { params: undefined });
+    expect(missingParams.status).toBe(500);
+    expect(await missingParams.json()).toEqual({ error: { code: "INTERNAL_ERROR", message: "The request could not be completed." } });
+    const nextDynamicComplete = complete as unknown as (request: Request, context: { params: Promise<Record<string, never>> }) => Promise<Response>;
+    const malformedParams = await nextDynamicComplete(request("POST"), { params: Promise.resolve({}) });
+    expect(malformedParams.status).toBe(500);
+    expect(await malformedParams.json()).toEqual({ error: { code: "INTERNAL_ERROR", message: "The request could not be completed." } });
     await (database.$client as PGlite).close();
   } finally { vi.unstubAllEnvs(); }
 });

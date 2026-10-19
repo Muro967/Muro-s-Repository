@@ -32,8 +32,13 @@ export function bindProductionUploadHandler(action: "create" | "put" | "complete
   return async (request: Request, context?: UploadRouteContext): Promise<Response> => {
     try {
       const handlers = createUploadHandlers(getProductionUploadDependencies());
-      const uploadId = context ? (await context.params).uploadId : undefined;
-      return await handlers[action](request, uploadId);
+      if (action === "create") return await handlers.create(request);
+      if (!context?.params) return apiError("INTERNAL_ERROR", 500, "The request could not be completed.");
+      const params = await context.params;
+      if (!params || typeof params.uploadId !== "string" || params.uploadId.length === 0) {
+        return apiError("INTERNAL_ERROR", 500, "The request could not be completed.");
+      }
+      return await handlers[action](request, params.uploadId);
     } catch { return apiError("INTERNAL_ERROR", 500, "The request could not be completed."); }
   };
 }

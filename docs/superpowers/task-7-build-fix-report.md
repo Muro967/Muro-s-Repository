@@ -6,6 +6,8 @@ The local provider's temporary object file is created from a runtime-generated p
 
 Regression coverage is in `tests/types/upload-route-types.ts` and `tests/build/upload-tracing.test.mjs`. The type contract is included in `pnpm typecheck`; the trace test checks each production route manifest for unrelated docs, tests, private data, project configuration, and source files while allowing the six storage modules used by every route.
 
+A runtime review found that Next invokes the static collection handler with `{ params: undefined }` despite its request-only exported signature. The binder now branches on `action === "create"` before reading route params. The production-bound integration test invokes that exact context shape and verifies creation reaches HTTP 201; missing or malformed params for the dynamic handlers return the sanitized internal error response.
+
 Verification used Node 22.17.0 with the bundled pnpm 11.25.0 CLI:
 
 - `pnpm test tests/unit/storage tests/integration/storage` — 46 tests passed.
