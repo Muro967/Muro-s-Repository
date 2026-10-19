@@ -629,7 +629,7 @@
         },
         "items_complete_metadata_check": {
           "name": "items_complete_metadata_check",
-          "value": "\"items\".\"status\" = 'draft' or (\"items\".\"wardrobe_id\" is not null and \"items\".\"zone_id\" is not null and length(trim(\"items\".\"name\")) > 0 and \"items\".\"category_id\" is not null and \"items\".\"added_on\" is not null)"
+          "value": "\"items\".\"status\" = 'draft' or (\"items\".\"wardrobe_id\" is not null and \"items\".\"zone_id\" is not null and \"items\".\"name\" ~ '[^[:space:]]' and \"items\".\"category_id\" is not null and \"items\".\"added_on\" is not null)"
         },
         "items_watch_dates_check": {
           "name": "items_watch_dates_check",

@@ -202,7 +202,7 @@ export const items = pgTable("items", {
   check("items_style_ids_check", jsonArrayValues(table.styleIds, itemStyles.map(({ id }) => id))),
   check("items_season_ids_check", jsonArrayValues(table.seasonIds, seasons.map(({ id }) => id))),
   check("items_zone_requires_wardrobe_check", sql`${table.zoneId} is null or ${table.wardrobeId} is not null`),
-  check("items_complete_metadata_check", sql`${table.status} = 'draft' or (${table.wardrobeId} is not null and ${table.zoneId} is not null and length(trim(${table.name})) > 0 and ${table.categoryId} is not null and ${table.addedOn} is not null)`),
+  check("items_complete_metadata_check", sql`${table.status} = 'draft' or (${table.wardrobeId} is not null and ${table.zoneId} is not null and ${table.name} ~ '[^[:space:]]' and ${table.categoryId} is not null and ${table.addedOn} is not null)`),
   check("items_watch_dates_check", sql`(${table.status} = 'watching' and ${table.watchStartedOn} is not null and ${table.watchDueOn} is not null and ${table.watchDueOn} >= ${table.watchStartedOn}) or (${table.status} <> 'watching' and ${table.watchStartedOn} is null and ${table.watchDueOn} is null)`),
 ]);
 

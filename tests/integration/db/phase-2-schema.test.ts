@@ -75,6 +75,27 @@ test("retains containers while items reference them and cascades inventory on us
   expect((await client.query(`select (select count(*) from zones where user_id = $1)::int + (select count(*) from items where user_id = $1)::int as count`, [user])).rows).toEqual([{ count: 0 }]);
 });
 
+test.each(["active", "watching", "disposed"].flatMap((status) => [
+  { status, name: "", whitespace: "empty name" },
+  { status, name: "   ", whitespace: "ordinary spaces" },
+  { status, name: "\t", whitespace: "tab" },
+  { status, name: "\n", whitespace: "newline" },
+  { status, name: " \t\n ", whitespace: "mixed whitespace" },
+]))("rejects $status items named only with $whitespace", async ({ status, name }) => {
+  await expect(client.query(
+    `insert into items (user_id, wardrobe_id, zone_id, name, category_id, status, added_on, watch_started_on, watch_due_on)
+     values ($1, $2, $3, $4, 'tops', $5, '2026-01-01', $6, $7)`,
+    [a, wardrobeA, zoneA, name, status, status === "watching" ? "2026-10-01" : null, status === "watching" ? "2026-10-31" : null],
+  )).rejects.toThrow(/items_complete_metadata_check/);
+});
+
+test.each(["", "   ", "\t", "\n", " \t\n "])("allows an unfinished draft name %j", async (name) => {
+  const inserted = await client.query<{ name: string; status: string }>(
+    `insert into items (user_id, name) values ($1, $2) returning name, status`, [a, name],
+  );
+  expect(inserted.rows).toEqual([{ name, status: "draft" }]);
+});
+
 test.each([
   ["active without location", `insert into items (user_id, status, name, category_id, added_on) values ('${a}', 'active', 'Shirt', 'tops', '2026-10-01')`],
   ["active without added date", `insert into items (user_id, status, name, category_id, wardrobe_id, zone_id) values ('${a}', 'active', 'Shirt', 'tops', '${wardrobeA}', '${zoneA}')`],
