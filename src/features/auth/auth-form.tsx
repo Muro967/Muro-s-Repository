@@ -37,7 +37,7 @@ export function AuthForm({ mode, submit }: { mode: "register" | "login"; submit?
     finally { locked.current = false; setPending(false); }
   }
   return <>
-    <form className={styles.form} onSubmit={handleSubmit} aria-busy={pending}>
+    <form className={styles.form} method="post" action={`/api/auth/${mode}`} onSubmit={handleSubmit} aria-busy={pending}>
       {registering ? <FormField label="邀请码" name="inviteCode" autoComplete="off" autoCapitalize="none" required maxLength={256} error={error?.fields?.inviteCode} /> : null}
       <FormField label="邮箱" name="email" type="email" autoComplete="email" autoCapitalize="none" required maxLength={320} error={error?.fields?.email} />
       <FormField label="密码" name="password" type="password" autoComplete={registering ? "new-password" : "current-password"} required hint={registering ? "使用 10–128 个字符，建议混合字母、数字和符号" : undefined} error={error?.fields?.password} />

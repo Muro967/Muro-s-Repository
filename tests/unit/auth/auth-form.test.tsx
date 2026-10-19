@@ -6,6 +6,17 @@ const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh: vi.fn() }) }));
 const account = { id: "user", email: "muro@example.com", name: "Muro", onboardingComplete: false };
 
+test.each(["register", "login"] as const)("%s keeps native credential submission in a same-origin POST body", (mode) => {
+  render(<AuthForm mode={mode} />);
+  const form = screen.getByRole("button", { name: mode === "register" ? "创建账号" : "登录" }).closest("form");
+  expect(form).toHaveAttribute("method", "post");
+  expect(form?.method).toBe("post");
+  expect(form).toHaveAttribute("action", `/api/auth/${mode}`);
+  const destination = new URL(form!.action);
+  expect(destination.origin).toBe(window.location.origin);
+  expect(destination.search).toBe("");
+});
+
 async function fill(mode: "register" | "login" = "register") {
   const user = userEvent.setup();
   if (mode === "register") {
