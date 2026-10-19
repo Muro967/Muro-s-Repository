@@ -27,7 +27,7 @@ export function OnboardingForm({ defaultName, submit = submitOnboarding }: { def
     } catch { setError(connectionError); }
     finally { locked.current = false; setPending(false); }
   }
-  return <form className={styles.form} onSubmit={handleSubmit} aria-busy={pending}>
+  return <form className={styles.form} method="post" action="/api/onboarding" onSubmit={handleSubmit} aria-busy={pending}>
     <FormField label="昵称" name="name" autoComplete="nickname" defaultValue={defaultName} required maxLength={80} error={error?.fields?.name} />
     <FormField label="常用城市" name="city" autoComplete="address-level2" required maxLength={80} placeholder="例如：上海" error={error?.fields?.city} hint="用于今后的天气与穿搭建议" />
     <FormField label="发长" required error={error?.fields?.hairLength}>{(props) => <select {...props} name="hairLength" value={length} onChange={(event) => setLength(event.target.value)}><option value="" disabled>请选择发长</option>{hairLengths.map((value) => <option key={value}>{value}</option>)}</select>}</FormField>

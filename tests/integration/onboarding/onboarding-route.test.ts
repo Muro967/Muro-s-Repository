@@ -43,6 +43,29 @@ test("requires a valid session and same origin before changing data", async () =
   } finally { await deps.client.close(); }
 });
 
+test("rejects native form fallback safely and checks its origin before reading profile values", async () => {
+  const deps = await setup();
+  try {
+    const nativeRequest = (origin: string) => new Request("http://localhost:3000/api/onboarding", {
+      method: "POST",
+      headers: { origin, host: "localhost:3000", cookie: `aiw_session=${token}`, "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(input).toString(),
+    });
+    const sameOrigin = nativeRequest("http://localhost:3000");
+    const response = await createOnboardingHandler(deps)(sameOrigin);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: { code: "INVALID_INPUT", message: "A valid JSON request body is required." } });
+    expect(sameOrigin.bodyUsed).toBe(false);
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const crossOrigin = nativeRequest("https://attacker.example");
+    expect((await createOnboardingHandler(deps)(crossOrigin)).status).toBe(403);
+    expect(crossOrigin.bodyUsed).toBe(false);
+    expect((await deps.repository.findSession(hashSessionToken(token), deps.now()))?.onboardingComplete).toBe(false);
+    expect(await readProfileSettings(deps.database, deps.user.id)).toEqual({ city: "", hairLength: "", hairTexture: "" });
+  } finally { await deps.client.close(); }
+});
+
 test("atomically saves owned profile, settings, and the first wardrobe without exposing secrets", async () => {
   const deps = await setup();
   try {

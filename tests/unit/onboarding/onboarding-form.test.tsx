@@ -5,6 +5,17 @@ import { OnboardingForm } from "@/features/onboarding/onboarding-form";
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh: vi.fn() }) }));
 
+test("keeps native profile submission in a fixed same-origin POST body", () => {
+  render(<OnboardingForm defaultName="Muro" />);
+  const form = screen.getByRole("button", { name: "开启我的衣橱" }).closest("form");
+  expect(form).toHaveAttribute("method", "post");
+  expect(form?.method).toBe("post");
+  expect(form).toHaveAttribute("action", "/api/onboarding");
+  const destination = new URL(form!.action);
+  expect(destination.origin).toBe(window.location.origin);
+  expect(destination.search).toBe("");
+});
+
 test("requires personal settings and defaults the first wardrobe name", () => {
   render(<OnboardingForm defaultName="Muro" submit={vi.fn()} />);
   for (const label of ["昵称", "常用城市", "发长", "发质", "第一个衣柜名称"]) {
