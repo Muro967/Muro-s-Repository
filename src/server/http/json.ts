@@ -7,6 +7,11 @@ export type ApiErrorCode =
   | "INVALID_CREDENTIALS"
   | "UNAUTHORIZED"
   | "ORIGIN_MISMATCH"
+  | "UNSUPPORTED_UPLOAD"
+  | "UPLOAD_NOT_FOUND"
+  | "UPLOAD_INCOMPLETE"
+  | "UPLOAD_SIZE_MISMATCH"
+  | "UPLOAD_CONFLICT"
   | "INTERNAL_ERROR";
 
 export type ApiErrorBody = {

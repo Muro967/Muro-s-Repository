@@ -6,6 +6,7 @@ coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
+# Private database and local object files must never enter source control.
 .data/
 .env
 .env.local
