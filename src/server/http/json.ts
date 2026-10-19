@@ -12,6 +12,9 @@ export type ApiErrorCode =
   | "UPLOAD_INCOMPLETE"
   | "UPLOAD_SIZE_MISMATCH"
   | "UPLOAD_CONFLICT"
+  | "NOT_FOUND"
+  | "LOCATION_REQUIRED"
+  | "LAST_WARDROBE"
   | "INTERNAL_ERROR";
 
 export type ApiErrorBody = {
