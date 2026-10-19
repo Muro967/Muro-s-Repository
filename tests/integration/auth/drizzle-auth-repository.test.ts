@@ -25,7 +25,7 @@ const registration = {
   now: new Date("2026-10-16T12:00:00Z"),
 };
 
-test("registers the user, settings, default wardrobe, and session in one transaction", async () => {
+test("registers the user, settings, default wardrobe and zone, and session in one transaction", async () => {
   const { client, repository } = await testRepository();
   try {
     await repository.createInvite({
@@ -39,12 +39,16 @@ test("registers the user, settings, default wardrobe, and session in one transac
       use_count: number;
       settings_count: number;
       wardrobe_name: string;
+      zone_name: string;
+      zone_kind: string;
       session_hash: string;
     }>(`
       select
         (select use_count from invite_codes limit 1)::int as use_count,
         (select count(*) from user_settings where user_id = $1)::int as settings_count,
         (select name from wardrobes where user_id = $1 limit 1) as wardrobe_name,
+        (select z.name from zones z join wardrobes w on w.id = z.wardrobe_id and w.user_id = z.user_id where z.user_id = $1) as zone_name,
+        (select kind from zones where user_id = $1) as zone_kind,
         (select token_hash from sessions where user_id = $1 limit 1) as session_hash
     `, [user.id]);
 
@@ -57,6 +61,8 @@ test("registers the user, settings, default wardrobe, and session in one transac
       use_count: 1,
       settings_count: 1,
       wardrobe_name: "我的衣柜",
+      zone_name: "默认挂衣区",
+      zone_kind: "hang",
       session_hash: registration.sessionHash,
     });
   } finally {
@@ -81,6 +87,7 @@ test("rolls back every registration write when an invite is invalid", async () =
         (select count(*) from users) +
         (select count(*) from user_settings) +
         (select count(*) from wardrobes) +
+        (select count(*) from zones) +
         (select count(*) from sessions)
       )::int as total
     `);
@@ -143,12 +150,14 @@ test("sanitizes unexpected transaction errors and rolls back every write", async
       registration.sessionHash,
     );
 
-    const state = await client.query<{ users: number; uses: number }>(`
+    const state = await client.query<{ users: number; uses: number; wardrobes: number; zones: number }>(`
       select
         (select count(*) from users)::int as users,
+        (select count(*) from wardrobes)::int as wardrobes,
+        (select count(*) from zones)::int as zones,
         (select use_count from invite_codes where code_hash = $1)::int as uses
     `, [secondInviteHash]);
-    expect(state.rows[0]).toEqual({ users: 1, uses: 0 });
+    expect(state.rows[0]).toEqual({ users: 1, uses: 0, wardrobes: 1, zones: 1 });
   } finally {
     await client.close();
   }

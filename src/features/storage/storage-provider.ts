@@ -19,11 +19,15 @@ export const uploadIdSchema = z.uuid();
 export const extensions = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as const;
 const objectKeyPattern = /^users\/([a-zA-Z0-9_-]{1,128})\/(wardrobe-original|inspiration|wear-photo)\/(\d{4})\/(0[1-9]|1[0-2])\/([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.(jpg|png|webp)$/;
 
-export function validateObjectKey(objectKey: string, contentType?: string): void {
+export function parseObjectKey(objectKey: string, contentType?: string): { userId: string; kind: UploadKind } {
   const matched = objectKeyPattern.exec(objectKey);
   if (!matched || (contentType !== undefined && extensions[contentType as UploadContentType] !== matched[6])) {
     throw new StorageError("UNSUPPORTED_UPLOAD");
   }
+  return { userId: matched[1], kind: matched[2] as UploadKind };
+}
+export function validateObjectKey(objectKey: string, contentType?: string): void {
+  parseObjectKey(objectKey, contentType);
 }
 export function validateObjectMetadata(objectKey: string, sizeBytes: number, contentType?: string): void {
   validateObjectKey(objectKey, contentType);

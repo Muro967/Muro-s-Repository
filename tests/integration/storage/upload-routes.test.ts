@@ -35,6 +35,16 @@ async function setup() {
 }
 const input = { kind: "wear-photo", contentType: "image/jpeg", sizeBytes: 3 };
 
+test("persists each validated upload purpose without defaulting other kinds to wardrobe originals", async () => {
+  const { handlers } = await setup();
+  for (const kind of ["wardrobe-original", "inspiration", "wear-photo"]) {
+    const response = await handlers.create(request("POST", { ...input, kind }));
+    expect(response.status).toBe(201);
+    const { uploadId } = await response.json();
+    expect((await client.query(`select kind from uploads where id = $1`, [uploadId])).rows).toEqual([{ kind }]);
+  }
+});
+
 test("authenticated local upload completes through real storage and tenant-scoped SQL", async () => {
   const { handlers, deps } = await setup();
   const response = await handlers.create(request("POST", input)); expect(response.status).toBe(201);

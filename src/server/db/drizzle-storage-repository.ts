@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq } from "drizzle-orm";
 import type { StorageRepository, UploadRecord } from "../../features/storage/storage-repository";
-import { StorageError, validateObjectMetadata } from "../../features/storage/storage-provider";
+import { parseObjectKey, StorageError, validateObjectMetadata } from "../../features/storage/storage-provider";
 import { uploads } from "./schema";
 import type { AppDatabase, PgliteAppDatabase } from "./types";
 
@@ -11,7 +11,8 @@ export class DrizzleStorageRepository implements StorageRepository {
   async create(record: UploadRecord): Promise<void> {
     validateObjectMetadata(record.objectKey, record.sizeBytes, record.contentType);
     if (!record.objectKey.startsWith(`users/${record.userId}/`) || record.status !== "pending") throw new StorageError("UNSUPPORTED_UPLOAD");
-    try { await this.db.insert(uploads).values(record); }
+    const { kind } = parseObjectKey(record.objectKey, record.contentType);
+    try { await this.db.insert(uploads).values({ ...record, kind }); }
     catch { throw new StorageError("STORAGE_FAILURE"); }
   }
   async findOwned(uploadId: string, userId: string): Promise<UploadRecord | null> {

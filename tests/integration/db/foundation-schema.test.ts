@@ -13,7 +13,7 @@ import {
   wardrobes,
 } from "@/server/db/schema";
 
-test("creates the complete phase-one foundation in Postgres", async () => {
+test("creates the complete current schema in Postgres", async () => {
   const client = new PGlite();
   const db = drizzle({ client });
 
@@ -28,12 +28,16 @@ test("creates the complete phase-one foundation in Postgres", async () => {
     `);
 
     expect(result.rows.map(({ table_name }) => table_name)).toEqual([
+      "disposal_records",
       "invite_codes",
+      "item_assets",
+      "items",
       "sessions",
       "uploads",
       "user_settings",
       "users",
       "wardrobes",
+      "zones",
     ]);
     expect(users).toBeDefined();
     expect(inviteCodes).toBeDefined();
@@ -100,8 +104,8 @@ test("enforces auth uniqueness and cascades every user-owned record", async () =
       [userId],
     );
     await client.query(
-      `insert into uploads (user_id, object_key, content_type, size_bytes, status)
-       values ($1, 'users/muro/item.jpg', 'image/jpeg', 1024, 'pending')`,
+      `insert into uploads (user_id, object_key, kind, content_type, size_bytes, status)
+       values ($1, 'users/muro/item.jpg', 'wardrobe-original', 'image/jpeg', 1024, 'pending')`,
       [userId],
     );
 

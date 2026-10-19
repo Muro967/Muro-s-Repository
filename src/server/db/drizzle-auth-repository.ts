@@ -9,6 +9,7 @@ import {
   userSettings,
   users,
   wardrobes,
+  zones,
 } from "./schema";
 import type { AppDatabase, PgliteAppDatabase } from "./types";
 
@@ -94,9 +95,20 @@ export class DrizzleAuthRepository implements AuthRepository {
         if (!user) throw new Error("Registration did not create a user");
 
         await transaction.insert(userSettings).values({ userId: user.id });
-        await transaction.insert(wardrobes).values({
+        const [wardrobe] = await transaction
+          .insert(wardrobes)
+          .values({
+            userId: user.id,
+            name: "我的衣柜",
+            sortOrder: 0,
+          })
+          .returning({ id: wardrobes.id });
+        if (!wardrobe) throw new Error("Registration did not create a wardrobe");
+        await transaction.insert(zones).values({
           userId: user.id,
-          name: "我的衣柜",
+          wardrobeId: wardrobe.id,
+          name: "默认挂衣区",
+          kind: "hang",
           sortOrder: 0,
         });
         await transaction.insert(sessions).values({
