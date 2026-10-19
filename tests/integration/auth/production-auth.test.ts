@@ -56,6 +56,14 @@ describe("production authentication bindings", () => {
     cookieState.value = cookie;
     const { getCurrentUser } = await import("@/features/auth/current-user");
     expect(await getCurrentUser()).toMatchObject({ email: "production@example.com" });
+    const { POST: onboarding } = await import("@/app/api/onboarding/route");
+    const saved = await onboarding(new Request("http://localhost:3000/api/onboarding", {
+      method: "POST", headers: { origin: "http://localhost:3000", host: "localhost:3000", cookie,
+        "content-type": "application/json" },
+      body: JSON.stringify({ name: "Production", city: "上海", hairLength: "中长发", hairTexture: "偏直", wardrobeName: "主卧衣柜" }),
+    }));
+    expect(saved.status).toBe(200);
+    expect(await getCurrentUser()).toMatchObject({ name: "Production", onboardingComplete: true });
     expect((await session(new Request("http://localhost:3000/api/auth/session", { headers: { cookie } }))).status).toBe(200);
 
     // Real Next RequestCookies collapses duplicate names; only raw headers retain ambiguity.

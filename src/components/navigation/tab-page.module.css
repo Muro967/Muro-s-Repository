@@ -1,0 +1,14 @@
+.heading { margin: 30px 0 16px; font: 600 22px/1.5 var(--serif); }
+.empty { display: grid; justify-items: center; padding: 46px 22px; border-radius: var(--radius-card); background: var(--card); text-align: center; }
+.emblem { display: grid; place-items: center; width: 80px; height: 80px; margin-bottom: 24px; border-radius: 28px; background: var(--oat); color: var(--sage-dark); }
+.emblem svg { width: 36px; height: 36px; }
+.empty[data-tab="outfits"] .emblem { background: var(--mist-light); }
+.empty[data-tab="inspiration"] .emblem { background: var(--rose-light); }
+.title { margin: 0 0 10px; font: 600 18px/1.6 var(--serif); }
+.description { max-width: 24em; margin: 0; color: var(--ink-2); font-size: 13px; }
+.profile { margin: 0 0 20px; padding: 8px 20px; border-radius: var(--radius-card); background: var(--card); }
+.row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.row dt { color: var(--ink-2); }
+.row dd { margin: 0; overflow-wrap: anywhere; }
+.connected { color: var(--sage-dark); }
