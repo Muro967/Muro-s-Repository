@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ItemEditor } from "@/features/items/item-editor";
+import { StrictMode } from "react";
 
 const id = "b3702bc6-e5de-45b6-92b6-1e9f8e23b130";
 const uploadId = "ba27f478-48f8-48a6-8177-7a8e67d8baef";
@@ -36,7 +37,7 @@ test("keeps edited fields and file while retrying attach on the same draft and u
     if (path === "/api/items") creates++;
     if (path.endsWith("original")) {
       if (init.method !== "PUT") return json({ error: { code: "METHOD_NOT_ALLOWED" } }, 405);
-      return ++attaches === 1 ? json({ error: { code: "INTERNAL_ERROR" } }, 500) : json({ ok: true });
+      return ++attaches === 1 ? json({ error: { code: "UNAUTHORIZED" } }, 401) : json({ ok: true });
     }
     return json({ item: { ...item, ...JSON.parse(String(init.body ?? "{}")) } });
   });
@@ -135,4 +136,99 @@ test("a stale attach finishing after replacement cannot mark the new photo uploa
   choose(); await waitFor(() => expect(releaseAttach).toBeDefined()); choose("new.jpg");
   await act(async () => { releaseAttach!(); });
   expect(screen.getByRole("status")).toHaveTextContent("正在上传");
+});
+
+test("starts each upload only after its new blob preview is committed, including in StrictMode", async () => {
+  fixture(); let next = 0;
+  vi.mocked(URL.createObjectURL).mockImplementation(() => `blob:${++next}`);
+  const observed: (string | null)[] = [];
+  const view = render(<StrictMode><ItemEditor submitUpload={() => {
+    observed.push(screen.queryByRole("img", { name: "衣物照片预览" })?.getAttribute("src") ?? null);
+    return new Promise(() => {});
+  }} /></StrictMode>);
+  choose("first.jpg"); choose("second.jpg");
+  await act(async () => {});
+  expect(observed).toEqual(["blob:1", "blob:2"]);
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:1");
+  view.unmount();
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:2");
+});
+
+test("waits for an accepted old attach response before sending the replacement, even when selection aborts", async () => {
+  const sent: string[] = []; let serverPhoto: string | null = null; let finishOld: (() => void) | undefined;
+  vi.stubGlobal("fetch", async (path: string, init: RequestInit) => {
+    if (path === "/api/wardrobes") return json({ wardrobes: [] });
+    if (!path.endsWith("original")) return json({ item });
+    const photo = (JSON.parse(String(init.body)) as { uploadId: string }).uploadId; sent.push(photo);
+    if (sent.length === 1) return new Promise<Response>((resolve, reject) => {
+      // An HTTP transport abort rejects immediately, but the server can still
+      // finish its accepted write. Selection changes must not trigger this.
+      init.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+      finishOld = () => { serverPhoto = photo; resolve(json({ ok: true })); };
+    });
+    serverPhoto = photo; return json({ ok: true });
+  });
+  const uploaded: string[] = [];
+  render(<ItemEditor submitUpload={async (file) => { uploaded.push(file.name); return { uploadId: file.name === "old.jpg" ? uploadId : id }; }} />);
+  choose("old.jpg"); await waitFor(() => expect(finishOld).toBeDefined());
+  choose("new.jpg"); await waitFor(() => expect(uploaded).toEqual(["old.jpg", "new.jpg"]));
+  await act(async () => {});
+  expect(sent).toEqual([uploadId]);
+  await act(async () => { finishOld!(); });
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("照片已上传"));
+  expect(sent).toEqual([uploadId, id]);
+  expect(serverPhoto).toBe(id);
+});
+
+test.each(["network", "malformed", "server-error"])("blocks later attaches after an unknown %s result until a read proves the old write committed", async (failure) => {
+  const sent: string[] = []; let serverPhoto: string | null = null;
+  let failTransport: (() => void) | undefined; let finishServer: (() => void) | undefined;
+  vi.stubGlobal("fetch", async (path: string, init: RequestInit) => {
+    if (path === "/api/wardrobes") return json({ wardrobes: [] });
+    if (init.method === "GET") return json({ item: { ...item, original: serverPhoto ? { id: uploadId, uploadId: serverPhoto } : null } });
+    if (!path.endsWith("original")) return json({ item });
+    const photo = (JSON.parse(String(init.body)) as { uploadId: string }).uploadId; sent.push(photo);
+    if (sent.length === 1) return new Promise<Response>((resolve, reject) => {
+      failTransport = () => {
+        if (failure === "network") reject(new TypeError("connection lost"));
+        else resolve(failure === "malformed" ? json({}) : json({ error: { code: "INTERNAL_ERROR" } }, 500));
+      };
+      finishServer = () => { serverPhoto = photo; };
+    });
+    serverPhoto = photo; return json({ ok: true });
+  });
+  render(<ItemEditor submitUpload={async (file) => ({ uploadId: file.name === "old.jpg" ? uploadId : id })} />);
+  await userEvent.type(screen.getByLabelText("名称"), "保留的衣物资料");
+  choose("old.jpg"); await waitFor(() => expect(failTransport).toBeDefined()); choose("new.jpg");
+  await act(async () => { failTransport!(); });
+  expect(await screen.findByRole("alert")).toHaveTextContent("照片绑定结果未确认");
+  expect(sent).toEqual([uploadId]);
+  expect(screen.queryByRole("button", { name: "重试照片" })).not.toBeInTheDocument();
+  expect(screen.getByLabelText("从相册选择")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "保存草稿" })).toBeDisabled();
+  await userEvent.click(screen.getByRole("button", { name: "核对服务器照片" }));
+  expect(screen.getByRole("alert")).toHaveTextContent("照片绑定结果未确认");
+  expect(sent).toEqual([uploadId]);
+  finishServer!();
+  await userEvent.click(screen.getByRole("button", { name: "核对服务器照片" }));
+  await userEvent.click(await screen.findByRole("button", { name: "重试照片" }));
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("照片已上传"));
+  expect(sent).toEqual([uploadId, id]); expect(serverPhoto).toBe(id);
+  expect(screen.getByLabelText("名称")).toHaveValue("保留的衣物资料");
+});
+
+test("confirms a recovered current photo without submitting the same attach again", async () => {
+  let attaches = 0;
+  vi.stubGlobal("fetch", async (path: string, init: RequestInit) => {
+    if (path === "/api/wardrobes") return json({ wardrobes: [] });
+    if (init.method === "GET") return json({ item: { ...item, original: { id, uploadId } } });
+    if (path.endsWith("original")) { attaches++; throw new TypeError("response lost after commit"); }
+    return json({ item });
+  });
+  render(<ItemEditor submitUpload={async () => ({ uploadId })} />); choose();
+  expect(await screen.findByRole("alert")).toHaveTextContent("照片绑定结果未确认");
+  await userEvent.click(screen.getByRole("button", { name: "核对服务器照片" }));
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("照片已上传"));
+  expect(screen.queryByRole("button", { name: "重试照片" })).not.toBeInTheDocument();
+  expect(attaches).toBe(1);
 });

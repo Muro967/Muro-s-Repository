@@ -19,6 +19,12 @@ type Form = Required<EditableItemPatch>;
 const emptyForm = (): Form => ({ name: "", categoryId: null, accessoryId: null, colorNames: [], colorHexes: [], styleIds: [], seasonIds: [], thickness: null, material: null, fit: null, length: null, formality: null, brand: null, notes: null, wardrobeId: null, zoneId: null, manualLastWornOn: null });
 function formFrom(item: EditorItem): Form { return Object.fromEntries(Object.keys(emptyForm()).map((key) => [key, item[key as keyof Form]])) as Form; }
 const message = (error: unknown) => error instanceof Error ? error.message : "暂时无法连接，请重试。";
+type UnconfirmedAttachment = { itemId: string; uploadId: string };
+function confirmedAttachFailure(error: unknown) {
+  if (!(error instanceof ItemClientError)) return false;
+  const knownFailures: Record<number, string[]> = { 400: ["INVALID_INPUT", "INVALID_IMAGE"], 401: ["UNAUTHORIZED"], 403: ["ORIGIN_MISMATCH"], 404: ["NOT_FOUND"], 409: ["ITEM_INCOMPLETE", "ITEM_NOT_EDITABLE", "ASSET_CONFLICT"] };
+  return error.status !== undefined && knownFailures[error.status]?.includes(error.code) === true;
+}
 
 export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUpload?: SubmitUpload }) {
   const [form, setForm] = useState<Form>(emptyForm);
@@ -27,6 +33,10 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
   const pendingDraft = useRef<Promise<string> | null>(null);
   const lifecycle = useRef<AbortController | null>(null);
   const attachQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const unconfirmedAttachment = useRef<UnconfirmedAttachment | null>(null);
+  const [unconfirmed, setUnconfirmed] = useState<UnconfirmedAttachment | null>(null);
+  const [checkingAttachment, setCheckingAttachment] = useState(false);
+  const [confirmationError, setConfirmationError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!!itemId);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [wardrobes, setWardrobes] = useState<WardrobeTree[]>([]);
@@ -47,17 +57,41 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
     }
     return pendingDraft.current;
   }
-  const upload = useItemUpload(async (uploadId, signal, isCurrent) => {
+  const upload = useItemUpload(async (uploadId, isCurrent) => {
     const id = await ensureDraft();
     if (!isCurrent()) return;
-    // Keep accepted attach requests in selection order, even if a transport
-    // ignores cancellation. A replaced result must never set editor state.
+    // An accepted write outlives selection cancellation: wait for its response
+    // before allowing another write, rather than aborting only the transport.
     const operation = attachQueue.current.catch(() => {}).then(async () => {
-      if (isCurrent()) await itemEditorClient.attach(id, uploadId, signal);
+      if (!isCurrent()) return;
+      if (unconfirmedAttachment.current) throw new Error("照片绑定结果未确认，请先核对服务器照片。");
+      try { await itemEditorClient.attach(id, uploadId); }
+      catch (error) {
+        if (!confirmedAttachFailure(error)) {
+          unconfirmedAttachment.current = { itemId: id, uploadId };
+          if (!lifecycle.current?.signal.aborted) setUnconfirmed(unconfirmedAttachment.current);
+        }
+        throw error;
+      }
     });
     attachQueue.current = operation;
     await operation;
   }, submitUpload);
+
+  async function checkAttachment() {
+    const pending = unconfirmedAttachment.current;
+    if (!pending || checkingAttachment) return;
+    setCheckingAttachment(true); setConfirmationError(null);
+    try {
+      const value = await itemEditorClient.read(pending.itemId, lifecycle.current?.signal);
+      if (lifecycle.current?.signal.aborted) return;
+      // A mismatching snapshot cannot prove the older write has finished.
+      // Only observing that exact upload bound proves its transaction committed.
+      if (value.original?.uploadId !== pending.uploadId) { setConfirmationError("服务器尚未确认这张照片，请稍后再次核对。确认前不能继续绑定。"); return; }
+      setItem(value); upload.confirmAttached(pending.uploadId); unconfirmedAttachment.current = null; setUnconfirmed(null);
+    } catch (error) { if (!lifecycle.current?.signal.aborted) setConfirmationError(message(error)); }
+    finally { if (!lifecycle.current?.signal.aborted) setCheckingAttachment(false); }
+  }
 
   const loadItem = useCallback(async (signal?: AbortSignal) => {
     if (!itemId) return;
@@ -90,7 +124,7 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
   const uploadBusy = upload.state === "uploading";
   const editable = !item || (!item.deletedAt && ["draft", "active"].includes(item.status));
   async function save(activate: boolean) {
-    if (busy || uploadBusy || !editable) return;
+    if (busy || uploadBusy || unconfirmedAttachment.current || !editable) return;
     if (!colorValid) { setSaveError("保存资料失败：颜色名最多 8 个，色值请使用 # 加六位十六进制字符，且不要重复。"); return; }
     setBusy(true); setSaveError(null); setSaved(null);
     try {
@@ -119,9 +153,10 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
     {loadError && <div role="alert" className={styles.error}>{loadError}<button type="button" onClick={() => void loadItem(lifecycle.current?.signal)}>重试加载衣物</button></div>}
     {!loading && !loadError && <>
       <div className={styles.preview}>{preview ? <Image src={preview} alt="衣物照片预览" width={800} height={800} unoptimized /> : <div className={styles.photoEmpty}><span aria-hidden="true">＋</span><p>留下它原本的样子</p><small>也可以先保存资料，稍后补照片</small></div>}</div>
-      <PhotoPicker disabled={busy || !editable} onSelect={(file) => { setSaved(null); upload.select(file); }} />
-      <div className={styles.status} role="status">{uploadBusy ? "正在上传" : saved ? saved === "active" ? "已保存到衣橱" : "已保存" : upload.state === "ready" ? "照片已上传" : ""}</div>
-      {upload.state === "retry" && <div role="alert" className={styles.error}><p>需要重试：{upload.error}</p><button type="button" onClick={upload.retry} disabled={busy}>重试照片</button></div>}
+      <PhotoPicker disabled={busy || !!unconfirmed || !editable} onSelect={(file) => { setSaved(null); upload.select(file); }} />
+      <div className={styles.status} role="status">{unconfirmed ? "照片绑定结果未确认" : uploadBusy ? "正在上传" : saved ? saved === "active" ? "已保存到衣橱" : "已保存" : upload.state === "ready" ? "照片已上传" : ""}</div>
+      {unconfirmed && <div role="alert" className={styles.error}><p>照片绑定结果未确认。为避免旧照片覆盖新照片，暂不能继续绑定或保存。请核对服务器照片后再重试。</p>{confirmationError && <p>{confirmationError}</p>}<button type="button" onClick={() => void checkAttachment()} disabled={checkingAttachment}>{checkingAttachment ? "正在核对…" : "核对服务器照片"}</button></div>}
+      {upload.state === "retry" && !unconfirmed && <div role="alert" className={styles.error}><p>需要重试：{upload.error}</p><button type="button" onClick={upload.retry} disabled={busy}>重试照片</button></div>}
       {!editable && <p role="alert" className={styles.error}>这件衣物目前不能编辑。</p>}
       <form onSubmit={(event) => { event.preventDefault(); void save(false); }}>
         <fieldset className={styles.card} disabled={busy || !editable}>
@@ -143,7 +178,7 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
         </fieldset></details>
         {saveError && <p role="alert" className={styles.error}>{saveError}</p>}
         <p className={styles.hint}>草稿可以暂缺照片和位置。保存到衣橱需有名称、分类、照片和分区。尚未上传的照片仅在当前页面保留，关闭后请重新选择。</p>
-        <div className={styles.footer}>{itemId && saved && !busy && !uploadBusy ? <Link className={styles.secondary} href="/app/items/new">再添加一件</Link> : <button type="button" className={styles.secondary} disabled={!saved || busy || uploadBusy} onClick={addAnother}>再添加一件</button>}<button className={styles.secondary} type="submit" disabled={busy || uploadBusy || !editable}>{busy ? "正在保存…" : "保存草稿"}</button><button type="button" className={styles.primary} disabled={!canActivate || busy || uploadBusy || !editable} onClick={() => void save(true)}>保存到衣橱</button></div>
+        <div className={styles.footer}>{itemId && saved && !busy && !uploadBusy && !unconfirmed ? <Link className={styles.secondary} href="/app/items/new">再添加一件</Link> : <button type="button" className={styles.secondary} disabled={!saved || busy || uploadBusy || !!unconfirmed} onClick={addAnother}>再添加一件</button>}<button className={styles.secondary} type="submit" disabled={busy || uploadBusy || !!unconfirmed || !editable}>{busy ? "正在保存…" : "保存草稿"}</button><button type="button" className={styles.primary} disabled={!canActivate || busy || uploadBusy || !!unconfirmed || !editable} onClick={() => void save(true)}>保存到衣橱</button></div>
       </form>
     </>}
     {authError && <Link href="/login">重新登录</Link>}
