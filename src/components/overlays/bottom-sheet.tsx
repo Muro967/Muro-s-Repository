@@ -1,12 +1,22 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import styles from "./bottom-sheet.module.css";
 
 const focusableSelector = 'button:not(:disabled), a[href], input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
 
-export function BottomSheet({ open, title, description, onClose, children }: { open: boolean; title: string; description?: string; onClose: () => void; children: ReactNode }) {
+function restoreFocus(element: HTMLElement | null) {
+  if (!element?.isConnected || element.matches(":disabled") || element.closest("[hidden], [inert]") || !element.matches(`${focusableSelector}, [tabindex="-1"]`)) return false;
+  for (let ancestor: HTMLElement | null = element; ancestor; ancestor = ancestor.parentElement) {
+    const style = getComputedStyle(ancestor);
+    if (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse") return false;
+  }
+  element.focus();
+  return document.activeElement === element;
+}
+
+export function BottomSheet({ open, title, description, onClose, fallbackFocusRef, children }: { open: boolean; title: string; description?: string; onClose: () => void; fallbackFocusRef?: RefObject<HTMLElement | null>; children: ReactNode }) {
   const id = useId();
   const panel = useRef<HTMLElement>(null);
   const overlay = useRef<HTMLDivElement>(null);
@@ -15,6 +25,7 @@ export function BottomSheet({ open, title, description, onClose, children }: { o
   useLayoutEffect(() => {
     if (!open || !panel.current || !overlay.current) return;
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const fallback = fallbackFocusRef?.current ?? null;
     const overflow = document.body.style.overflow;
     const background = Array.from(document.body.children).filter((element) => element !== overlay.current).map((element) => ({ element, inert: element.getAttribute("inert"), hidden: element.getAttribute("aria-hidden") }));
     for (const { element } of background) { element.setAttribute("inert", ""); element.setAttribute("aria-hidden", "true"); }
@@ -43,9 +54,9 @@ export function BottomSheet({ open, title, description, onClose, children }: { o
         if (inert === null) element.removeAttribute("inert"); else element.setAttribute("inert", inert);
         if (hidden === null) element.removeAttribute("aria-hidden"); else element.setAttribute("aria-hidden", hidden);
       }
-      if (trigger?.isConnected) trigger.focus();
+      queueMicrotask(() => { if (!restoreFocus(trigger)) restoreFocus(fallback); });
     };
-  }, [open]);
+  }, [open, fallbackFocusRef]);
   useLayoutEffect(() => {
     if (open && panel.current) (panel.current.querySelector<HTMLElement>("[data-sheet-autofocus]") ?? panel.current.querySelector<HTMLElement>(focusableSelector) ?? panel.current).focus();
   }, [open, title]);

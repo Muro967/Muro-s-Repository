@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WardrobeManager } from "@/features/wardrobe/wardrobe-manager";
 import { wardrobes } from "./fixtures";
@@ -98,6 +98,7 @@ test.each(["分区", "衣柜"])("requires a legal relocation before deleting a n
   await user.click(within(sheet).getByRole("button", { name: "长挂区" }));
   await user.click(within(sheet).getByRole("button", { name: "移到 次卧衣柜 › 长挂区" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(screen.getByRole("button", { name: "＋ 添加分区" })).toHaveFocus();
   expect(writes.at(-1)).toEqual({ method: "DELETE", path: kind === "分区" ? "/api/zones/z1" : "/api/wardrobes/w1", body: { destinationZoneId: "z5" } });
 });
 
@@ -135,6 +136,7 @@ test("renames a wardrobe and removes an empty zone after server confirmation", a
   await user.click(screen.getByRole("button", { name: "确认删除分区" }));
   await waitFor(() => expect(screen.queryByRole("button", { name: "短挂区，挂衣区" })).not.toBeInTheDocument());
   expect(screen.getByRole("heading", { name: "卧室衣柜 › 叠放层" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "＋ 添加分区" })).toHaveFocus();
 });
 
 test("keeps the existing order when a reorder is rejected", async () => {
@@ -187,4 +189,39 @@ test("keeps the sheet open during refresh then restores the enabled trigger", as
   releaseRefresh(new Response(JSON.stringify({ wardrobes })));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   expect(screen.getByRole("button", { name: "＋ 新建衣柜" })).toHaveFocus();
+});
+
+test.each(["old snapshot", "old error"])("ignores a retry GET's %s when it arrives after a saved rename", async (lateResult) => {
+  apiFixture(); render(<WardrobeManager />); const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "编辑分区" }));
+  vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ error: { code: "NOT_FOUND" } }), { status: 404 }));
+  await user.click(screen.getByRole("button", { name: "下移短挂区" }));
+  await screen.findByRole("alert");
+
+  const savedTree = structuredClone(wardrobes);
+  let releaseOldRead: (response: Response) => void = () => {};
+  let reads = 0;
+  vi.stubGlobal("fetch", async (_path: string, init: RequestInit) => {
+    if (init.method === "GET") {
+      reads += 1;
+      if (reads === 1) return new Promise<Response>((resolve) => { releaseOldRead = resolve; });
+      return new Response(JSON.stringify({ wardrobes: savedTree }));
+    }
+    savedTree[0].zones[0].name = (JSON.parse(String(init.body)) as { name: string }).name;
+    return new Response(JSON.stringify({ ok: true }));
+  });
+  await user.click(screen.getByRole("button", { name: "重试加载" }));
+  expect(screen.getByRole("status")).toHaveTextContent("正在打开衣柜");
+  await user.click(screen.getByRole("button", { name: "改名短挂区" }));
+  await user.clear(screen.getByRole("textbox", { name: "分区名称" }));
+  await user.type(screen.getByRole("textbox", { name: "分区名称" }), "外套挂区");
+  await user.click(screen.getByRole("button", { name: "保存分区" }));
+  await screen.findByRole("button", { name: "外套挂区，挂衣区" });
+  await act(async () => {
+    releaseOldRead(lateResult === "old snapshot" ? new Response(JSON.stringify({ wardrobes })) : new Response(JSON.stringify({ error: { code: "UNAUTHORIZED" } }), { status: 401 }));
+  });
+  expect(screen.getByRole("button", { name: "外套挂区，挂衣区" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "短挂区，挂衣区" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent("已保存");
 });

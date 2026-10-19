@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { ClientError, ClientResult } from "@/features/auth/auth-client";
 import { BottomSheet } from "@/components/overlays/bottom-sheet";
 import { wardrobeClient } from "./wardrobe-client";
@@ -32,20 +32,28 @@ export function WardrobeManager() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
   const formId = useId();
+  const addZoneButton = useRef<HTMLButtonElement>(null);
+  const treeRequestVersion = useRef(0);
   const wardrobe = wardrobes?.find((entry) => entry.id === wardrobeId) ?? wardrobes?.[0];
   const zone = wardrobe?.zones.find((entry) => entry.id === zoneId) ?? wardrobe?.zones[0];
-  const load = useCallback(() => wardrobeClient.list().then((result) => {
-    if (result.ok) { setWardrobes(result.value); setWardrobeId((current) => current ?? result.value[0]?.id ?? null); setZoneId((current) => current ?? result.value[0]?.zones[0]?.id ?? null); } else setError(result.error);
-    setLoading(false);
-  }), []);
+  const load = useCallback(() => {
+    const version = ++treeRequestVersion.current;
+    return wardrobeClient.list().then((result) => {
+      if (version !== treeRequestVersion.current) return;
+      if (result.ok) { setWardrobes(result.value); setWardrobeId((current) => current ?? result.value[0]?.id ?? null); setZoneId((current) => current ?? result.value[0]?.zones[0]?.id ?? null); } else setError(result.error);
+      setLoading(false);
+    });
+  }, []);
   useEffect(() => { void load(); }, [load]);
 
   function open(next: Sheet) { setError(null); setNotice(""); setSheet(next); if (next.mode === "create" || next.mode === "rename") { setName(next.name); setKind("hang"); } }
   function close() { if (!busy) { setSheet(null); setError(null); } }
   async function mutate(operation: () => Promise<ClientResult<unknown>>, after?: (value: unknown) => void) {
-    setBusy(true); setError(null); setNotice("");
+    const version = ++treeRequestVersion.current;
+    setLoading(false); setBusy(true); setError(null); setNotice("");
     try {
       const result = await operation();
+      if (version !== treeRequestVersion.current) return;
       if (!result.ok) {
         if (result.error.code === "LOCATION_REQUIRED" && sheet && (sheet.mode === "delete" || sheet.mode === "relocate")) {
           const targets = availableTargets(sheet.target);
@@ -56,6 +64,7 @@ export function WardrobeManager() {
       }
       after?.(result.value);
       const refreshed = await wardrobeClient.list();
+      if (version !== treeRequestVersion.current) return;
       if (refreshed.ok) { setWardrobes(refreshed.value); setNotice("已保存"); }
       else setError({ ...refreshed.error, message: `修改已保存，但列表未能更新。${refreshed.error.message}` });
       setSheet(null);
@@ -97,9 +106,9 @@ export function WardrobeManager() {
       </div>
       {wardrobe ? <>
         <ZoneGrid wardrobeName={wardrobe.name} zones={wardrobe.zones} selectedId={zone?.id} busy={busy} onSelect={setZoneId} />
-        <div className={styles.actions}><button type="button" className={styles.secondary} aria-expanded={editing} disabled={busy} onClick={() => setEditing(!editing)}>{editing ? "完成编辑" : "编辑分区"}</button><button type="button" className={styles.secondary} disabled={busy} onClick={() => open({ mode: "create", kind: "zone", name: "" })}>＋ 添加分区</button></div>
+        <div className={styles.actions}><button type="button" className={styles.secondary} aria-expanded={editing} disabled={busy} onClick={() => setEditing(!editing)}>{editing ? "完成编辑" : "编辑分区"}</button><button type="button" ref={addZoneButton} className={styles.secondary} disabled={busy} onClick={() => open({ mode: "create", kind: "zone", name: "" })}>＋ 添加分区</button></div>
         {editing && <section className={styles.editor} aria-label="衣柜与分区编辑"><p className={styles.hint}>用按钮改名、调整顺序或删除。删除有衣物的分区时，需要先选择衣物移到哪里。</p>
-          <div className={styles.editRow}><strong>{wardrobe.name}</strong><div className={styles.editControls}>
+          <div className={styles.editRow} key={wardrobe.id}><strong>{wardrobe.name}</strong><div className={styles.editControls}>
             <button type="button" disabled={busy} aria-label={`改名${wardrobe.name}`} onClick={() => open({ mode: "rename", kind: "wardrobe", id: wardrobe.id, name: wardrobe.name })}>改名</button>
             <button type="button" disabled={busy || wardrobes[0].id === wardrobe.id} aria-label={`前移${wardrobe.name}`} onClick={() => void reorder(wardrobes.map((w) => w.id), wardrobe.id, -1, true)}>前移</button>
             <button type="button" disabled={busy || wardrobes.at(-1)?.id === wardrobe.id} aria-label={`后移${wardrobe.name}`} onClick={() => void reorder(wardrobes.map((w) => w.id), wardrobe.id, 1, true)}>后移</button>
@@ -115,7 +124,7 @@ export function WardrobeManager() {
         <section className={styles.items} aria-label="所选分区的衣物"><h2>{wardrobe.name}{zone ? ` › ${zone.name}` : ""}</h2><div className={styles.empty}>{zone ? <><h3>衣物列表暂不可列出</h3><p>衣柜和分区已连接。这里稍后会显示此分区的真实衣物。</p></> : <><h3>这个衣柜还没有分区</h3><p>添加第一个分区，给衣物安排一个位置。</p></>}</div></section>
       </> : <div className={styles.empty}><h2>从一个衣柜开始</h2><p>新建衣柜，再按你的收纳习惯添加分区。</p></div>}
     </>}
-    <BottomSheet open={sheet !== null} title={sheetTitle} onClose={close} description={sheet?.mode === "relocate" ? "请选择保留的目标分区。确认后会移动其中的衣物，并删除原位置。" : undefined}>
+    <BottomSheet open={sheet !== null} title={sheetTitle} onClose={close} fallbackFocusRef={addZoneButton} description={sheet?.mode === "relocate" ? "请选择保留的目标分区。确认后会移动其中的衣物，并删除原位置。" : undefined}>
       <Failure error={error} />
       {naming && <form onSubmit={save} className={styles.form}><label htmlFor={`${formId}-name`}>{sheet.kind === "wardrobe" ? "衣柜名称" : "分区名称"}</label><input id={`${formId}-name`} data-sheet-autofocus required maxLength={80} value={name} disabled={busy} onChange={(event) => setName(event.target.value)} autoComplete="off" />
         {sheet.kind === "zone" && sheet.mode === "create" && <><label htmlFor={`${formId}-kind`}>分区类型</label><select id={`${formId}-kind`} value={kind} disabled={busy} onChange={(event) => setKind(event.target.value as ZoneKind)}>{zoneKinds.map((entry) => <option value={entry} key={entry}>{zoneKindLabels[entry]}</option>)}</select></>}
