@@ -28,6 +28,19 @@ test("production registers the worker, serves icons and a private-data-free offl
   await context.setOffline(true);
   await page.goto("/public-offline-check");
   await expect(page.getByRole("heading", { name: "现在无法连接网络" })).toBeVisible();
+  await page.locator('link[rel="stylesheet"]').evaluateAll((stylesheets) => stylesheets.forEach((sheet) => sheet.remove()));
+  const main = page.getByRole("main");
+  await expect.poll(() => main.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(242, 238, 232)");
+  await expect.poll(() => main.evaluate((element) => getComputedStyle(element).display)).toBe("grid");
+  const retry = page.getByRole("link", { name: "重新连接" });
+  const retryBounds = await retry.boundingBox();
+  expect(retryBounds?.width).toBeGreaterThanOrEqual(44);
+  expect(retryBounds?.height).toBeGreaterThanOrEqual(44);
+  await expect.poll(() => retry.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(110, 123, 106)");
+  await page.keyboard.press("Tab");
+  await expect(retry).toBeFocused();
+  expect(await retry.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+  expect(await retry.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe("none");
   expect(await page.evaluate(async () => {
     try { await fetch("/api/auth/session"); return true; } catch { return false; }
   })).toBe(false);

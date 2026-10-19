@@ -6,13 +6,16 @@ Implemented the PWA manifest, generic offline page, production-only Service Work
 
 Round 1 review fixes: real browser navigation requests with `credentials: "include"` now take the public navigation path, preserving the generic offline fallback without runtime caching. Private/app/auth/API paths with included credentials remain bypassed. Manifest icons now advertise both `purpose: "any"` and `purpose: "maskable"` for 192px and 512px assets so Chromium can select a general-purpose install icon.
 
+Final-review follow-up: the offline page's paper background, sage wardrobe mark, typography, layout, and retry control now use inline React style props in the cached HTML. The obsolete CSS module was removed. The retry target is 48px tall, and keyboard focus retains the browser's visible `:focus-visible` indicator without requiring external CSS.
+
 Added the paper/sage wardrobe mark as an SVG source and a Sharp generator. Generated and verified `icon-192.png` (192×192), `icon-512.png` (512×512), and `apple-touch-icon.png` (180×180). The install prompt uses accessible labels, visible focus treatment, and safe-area-aware spacing.
 
-TDD evidence: initial PWA tests failed because the manifest, worker, and installation UI were absent. Round 1 tests then failed because include-credential navigations were not intercepted and the manifest had only maskable icons. The behavioral tests execute `public/sw.js` in a worker harness and verify exact precache contents, include-credential public navigation with `no-store`, generic offline fallback, private-route bypass, absence of runtime cache writes, and safe cache cleanup.
+TDD evidence: initial PWA tests failed because the manifest, worker, and installation UI were absent. Round 1 tests then failed because include-credential navigations were not intercepted and the manifest had only maskable icons. The production browser test was extended before the offline-page change; it failed with a transparent computed background after removing all stylesheet links. It now proves the first-install cache serves a styled fallback without stylesheet assets, checks the paper background/grid/sage retry control and 48px touch target, and verifies keyboard focus visibility. The worker policy tests also execute `public/sw.js` and verify exact precache contents, include-credential public navigation with `no-store`, generic offline fallback, private-route bypass, absence of runtime cache writes, and safe cache cleanup.
 
 Verification:
 
 - PWA tests: 16 passed.
+- Production Playwright PWA E2E: 1 passed, including worker install, offline fallback after removing all stylesheets, computed visual styles, target size, and keyboard focus.
 - Full suite: 32 files, 214 tests passed (`--maxWorkers=4 --testTimeout=15000`).
 - ESLint: passed.
 - `git diff --check`: passed.
