@@ -39,10 +39,10 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || isPrivatePath(url.pathname)) return;
-  if (request.mode !== "navigate" || request.credentials === "include") return;
+  if (request.mode !== "navigate") return;
 
   event.respondWith(
-    fetch(request).catch(async () => {
+    fetch(request, { cache: "no-store" }).catch(async () => {
       const offlinePage = await caches.match("/offline");
       return offlinePage || Response.error();
     }),

@@ -16,6 +16,7 @@ function createWorkerHarness() {
   const opened: string[] = [];
   const deleted: string[] = [];
   const put: string[] = [];
+  const fetchOptions: Array<RequestInit | undefined> = [];
   const offlineResponse = new Response("offline shell");
   const cache = {
     addAll: async (urls: string[]) => opened.push(...urls),
@@ -43,8 +44,9 @@ function createWorkerHarness() {
       clients: { claim: async () => undefined },
     },
     caches: cachesApi,
-    fetch: async (request: Request) => {
+    fetch: async (request: Request, options?: RequestInit) => {
       networkRequests.push(request);
+      fetchOptions.push(options);
       if (networkFails) throw new TypeError("network unavailable");
       return new Response("network");
     },
@@ -57,6 +59,7 @@ function createWorkerHarness() {
     deleted,
     put,
     networkRequests,
+    fetchOptions,
     offlineResponse,
     failNetwork: () => { networkFails = true; },
     run: async () => {
@@ -86,39 +89,44 @@ test("public navigation uses the offline page after a network failure", async ()
   const worker = createWorkerHarness();
   await worker.run();
   worker.failNetwork();
-  const response = await new Promise<unknown>((resolve, reject) => {
-    worker.listeners.get("fetch")?.({
-      request: workerRequest("https://wardrobe.example/about", "navigate"),
-      respondWith: (promise) => void promise.then(resolve, reject),
-    });
+  let responsePromise: Promise<unknown> | undefined;
+  worker.listeners.get("fetch")?.({
+    request: workerRequest("https://wardrobe.example/about", "navigate", "GET", "include"),
+    respondWith: (promise) => { responsePromise = promise; },
   });
+  expect(responsePromise).toBeDefined();
+  const response = await responsePromise;
 
   expect(response).toBeInstanceOf(Response);
   expect((response as Response).status).toBe(200);
   expect(await (response as Response).text()).toBe("offline shell");
   expect(worker.networkRequests).toHaveLength(1);
+  expect(worker.networkRequests[0]?.credentials).toBe("include");
+  expect(worker.fetchOptions[0]?.cache).toBe("no-store");
+  expect(worker.put).toEqual([]);
 });
 
 test("does not cache successful public navigation responses", async () => {
   const worker = createWorkerHarness();
   await worker.run();
-  const response = await new Promise<unknown>((resolve, reject) => {
-    worker.listeners.get("fetch")?.({
-      request: workerRequest("https://wardrobe.example/about", "navigate"),
-      respondWith: (promise) => void promise.then(resolve, reject),
-    });
+  let responsePromise: Promise<unknown> | undefined;
+  worker.listeners.get("fetch")?.({
+    request: workerRequest("https://wardrobe.example/about", "navigate", "GET", "include"),
+    respondWith: (promise) => { responsePromise = promise; },
   });
+  expect(responsePromise).toBeDefined();
+  const response = await responsePromise;
 
-  expect((response as Response).status).toBe(200);
+  expect((response as Response | undefined)?.status).toBe(200);
   expect(worker.put).toEqual([]);
 });
 
 test.each([
-  ["/api/uploads", "navigate", "GET", "same-origin"],
-  ["/app/wardrobe", "navigate", "GET", "same-origin"],
-  ["/login", "navigate", "GET", "same-origin"],
-  ["/register", "navigate", "GET", "same-origin"],
-  ["/app/onboarding", "navigate", "GET", "same-origin"],
+  ["/api/uploads", "navigate", "GET", "include"],
+  ["/app/wardrobe", "navigate", "GET", "include"],
+  ["/login", "navigate", "GET", "include"],
+  ["/register", "navigate", "GET", "include"],
+  ["/app/onboarding", "navigate", "GET", "include"],
   ["/private-image", "image", "GET", "same-origin"],
   ["/about", "navigate", "POST", "same-origin"],
   ["https://cdn.example/image.jpg", "image", "GET", "include"],
