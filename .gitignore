@@ -1,6 +1,8 @@
 /.worktrees/
 node_modules/
 .next/
+.next-e2e/
+output/playwright/
 out/
 coverage/
 playwright-report/

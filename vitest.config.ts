@@ -8,6 +8,7 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
   test: {
+    maxWorkers: 2,
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],

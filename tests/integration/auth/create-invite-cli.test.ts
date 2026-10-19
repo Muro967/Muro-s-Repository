@@ -7,9 +7,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { hashInviteCode } from "@/features/auth/crypto";
-import { migrateDatabase } from "@/server/db/migrate";
-import { schema } from "@/server/db/schema";
-import { drizzle } from "drizzle-orm/pglite";
 
 const projectRoot = process.cwd();
 
@@ -40,6 +37,7 @@ function isolatedEnvironment() {
 }
 
 async function writeIsolatedPackage(directory: string) {
+  await symlink(join(projectRoot, "drizzle"), join(directory, "drizzle"));
   await mkdir(join(directory, "node_modules", ".bin"), { recursive: true });
   await symlink(
     join(projectRoot, "node_modules", ".bin", "tsx"),
@@ -60,16 +58,12 @@ async function writeIsolatedPackage(directory: string) {
 async function createIsolatedProject() {
   const directory = await mkdtemp(join(tmpdir(), "ai-wardrobe-invite-cli-"));
   const databaseDirectory = join(directory, "database");
-  const client = new PGlite(databaseDirectory);
-  await migrateDatabase(drizzle({ client, schema }));
-  await client.close();
-
   await writeIsolatedPackage(directory);
 
   return { directory, databaseDirectory };
 }
 
-test("pnpm invite:create loads .env.local and persists the HMAC in configured PGlite", async () => {
+test("pnpm invite:create initializes a fresh database from .env.local and persists only the HMAC", async () => {
   const { directory, databaseDirectory } = await createIsolatedProject();
   const pepper = "cli-pepper-value-with-at-least-32-characters";
   await writeFile(

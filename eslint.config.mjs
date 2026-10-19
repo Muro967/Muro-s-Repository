@@ -21,5 +21,5 @@ export default defineConfig([
       "architecture/no-server-runtime-import": "error",
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", ".next-e2e/**", "output/playwright/**", "test-results/**", "playwright-report/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);

@@ -1,8 +1,8 @@
-import { randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
 
-import { hashInviteCode } from "../src/features/auth/crypto";
+import { createInvitation } from "../src/features/auth/create-invitation";
 import { DrizzleAuthRepository } from "../src/server/db/drizzle-auth-repository";
+import { migrateDatabase } from "../src/server/db/migrate";
 import { getDb } from "../src/server/runtime/db";
 import { readInvitePepper, readServerEnv } from "../src/server/runtime/env";
 
@@ -53,17 +53,15 @@ async function main() {
     );
   }
   const pepper = readInvitePepper();
-  const rawCode = randomBytes(18).toString("base64url");
-  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1_000);
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1_000);
+  let rawCode: string;
   const database = getDb();
 
   try {
+    await migrateDatabase(database);
     const repository = new DrizzleAuthRepository(database);
-    await repository.createInvite({
-      codeHash: hashInviteCode(rawCode, pepper),
-      maxUses: uses,
-      expiresAt,
-    });
+    rawCode = await createInvitation({ uses, days }, { repository, pepper, now });
   } finally {
     await closeDatabase(database);
   }
