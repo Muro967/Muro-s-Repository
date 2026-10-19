@@ -47,7 +47,8 @@ export class LocalStorageProvider implements StorageProvider {
     try {
       const target = await this.objectPath(key, true);
       temporary = join(dirname(target), `.${randomUUID()}.partial`);
-      handle = await open(temporary, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW, 0o600);
+      // This private object is created at runtime, not a deployment asset.
+      handle = await open(/* turbopackIgnore: true */ temporary, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW, 0o600);
       reader = body.getReader();
       let total = 0;
       while (true) {

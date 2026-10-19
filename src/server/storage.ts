@@ -24,8 +24,12 @@ export function getProductionUploadDependencies(): UploadRouteDependencies {
   return { appUrl: auth.appUrl, authRepository: auth.repository, now: auth.now,
     repository: new DrizzleStorageRepository(getDb()), provider: createStorageProvider() };
 }
+type UploadRouteContext = { params: Promise<{ uploadId: string }> };
+
+export function bindProductionUploadHandler(action: "create"): (request: Request) => Promise<Response>;
+export function bindProductionUploadHandler(action: "put" | "complete"): (request: Request, context: UploadRouteContext) => Promise<Response>;
 export function bindProductionUploadHandler(action: "create" | "put" | "complete") {
-  return async (request: Request, context?: { params: Promise<{ uploadId: string }> }): Promise<Response> => {
+  return async (request: Request, context?: UploadRouteContext): Promise<Response> => {
     try {
       const handlers = createUploadHandlers(getProductionUploadDependencies());
       const uploadId = context ? (await context.params).uploadId : undefined;
