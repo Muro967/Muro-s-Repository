@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Cormorant_Garamond, Noto_Sans_SC, Noto_Serif_SC } from "next/font/google";
 import "@/styles/global.css";
+import InstallGuidance from "@/components/pwa/install-guidance";
+import ServiceWorkerRegistration from "@/components/pwa/service-worker-registration";
 
 const latin = Cormorant_Garamond({
   subsets: ["latin"],
@@ -30,6 +32,10 @@ const sans = Noto_Sans_SC({
 export const metadata: Metadata = {
   title: "AI Wardrobe",
   description: "穿你所有，爱你所穿",
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -42,7 +48,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-CN" className={`${latin.variable} ${serif.variable} ${sans.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <ServiceWorkerRegistration />
+        <InstallGuidance />
+      </body>
     </html>
   );
 }

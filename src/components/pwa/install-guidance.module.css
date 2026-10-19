@@ -1,0 +1,78 @@
+.guidance {
+  position: fixed;
+  z-index: 20;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  left: max(16px, env(safe-area-inset-left, 0px));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 448px;
+  margin-inline: auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  box-shadow: 0 12px 32px rgb(62 58 54 / 12%);
+}
+
+.copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.title,
+.description {
+  margin: 0;
+}
+
+.title {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.description {
+  margin-top: 2px;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.install,
+.dismiss {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.install {
+  padding: 0 14px;
+  background: var(--sage-dark);
+  color: white;
+  font-weight: 500;
+}
+
+.dismiss {
+  padding: 0 8px;
+  background: transparent;
+  color: var(--ink-2);
+}
+
+.install:focus-visible,
+.dismiss:focus-visible {
+  outline: 2px solid var(--sage-dark);
+  outline-offset: 3px;
+}
+
+@media (max-width: 360px) {
+  .guidance {
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .description {
+    font-size: 11px;
+  }
+}
