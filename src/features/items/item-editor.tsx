@@ -13,6 +13,7 @@ import type { EditableItemPatch } from "./item-repository";
 import { ItemClientError } from "./item-upload-client";
 import { PhotoPicker } from "./photo-picker";
 import { useItemUpload, type SubmitUpload } from "./use-item-upload";
+import { WatchWearForm } from "../idle/watch-wear-form";
 import styles from "./item-editor.module.css";
 
 type Form = Required<EditableItemPatch>;
@@ -49,6 +50,9 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
   const [location, setLocation] = useState<LocationValue>({ wardrobeId: "", zoneId: null });
   const [colorNames, setColorNames] = useState("");
   const [colorHexes, setColorHexes] = useState("");
+  const [wearRecorded, setWearRecorded] = useState(false);
+  const wearStatus = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (wearRecorded) wearStatus.current?.focus(); }, [wearRecorded]);
 
   async function ensureDraft(): Promise<string> {
     if (currentId.current) return currentId.current;
@@ -115,7 +119,7 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
     return () => controller.abort();
   }, [loadItem, loadWardrobes]);
 
-  function change<K extends keyof Form>(key: K, value: Form[K]) { setForm((previous) => ({ ...previous, [key]: value })); setSaved(null); setSaveError(null); }
+  function change<K extends keyof Form>(key: K, value: Form[K]) { setForm((previous) => ({ ...previous, [key]: value })); setSaved(null); setSaveError(null); setWearRecorded(false); }
   const names = colorNames.split(/[/／,，、]/).map((value) => value.trim()).filter(Boolean);
   const hexes = colorHexes.split(/[/／,，、\s]+/).map((value) => value.trim().toUpperCase()).filter(Boolean);
   const colorValid = names.length <= 8 && names.every((value) => [...value].length <= 32) && new Set(names).size === names.length && hexes.length <= 8 && hexes.every((value) => /^#[0-9A-F]{6}$/.test(value)) && new Set(hexes).size === hexes.length;
@@ -123,6 +127,7 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
   const canActivate = !!form.name.trim() && !!form.categoryId && (form.categoryId !== "accessories" || !!form.accessoryId) && !!form.wardrobeId && !!form.zoneId && photoReady && colorValid;
   const uploadBusy = upload.state === "uploading";
   const editable = !item || (!item.deletedAt && ["draft", "active"].includes(item.status));
+  const canRecordWear = !!item && !item.deletedAt && item.status === "watching";
   async function save(activate: boolean) {
     if (busy || uploadBusy || unconfirmedAttachment.current || !editable) return;
     if (!colorValid) { setSaveError("保存资料失败：颜色名最多 8 个，色值请使用 # 加六位十六进制字符，且不要重复。"); return; }
@@ -148,16 +153,20 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
   const zone = wardrobe?.zones.find((value) => value.id === form.zoneId);
   const preview = upload.preview ?? (item?.original ? `/api/items/${item.id}/assets/${item.original.id}/content` : null);
   return <div className={styles.editor}>
-    <header className={styles.heading}><h1>{itemId ? "编辑衣物" : "添加衣物"}</h1><p>选一张照片，记下这件衣物的资料与位置。</p></header>
+    <header className={styles.heading}><h1>{canRecordWear ? "观察中的衣物" : itemId ? "编辑衣物" : "添加衣物"}</h1><p>{canRecordWear ? "手动记下实际穿着日期，更新这件衣物的观察状态。" : "选一张照片，记下这件衣物的资料与位置。"}</p></header>
     {loading && <p role="status">正在加载衣物…</p>}
     {loadError && <div role="alert" className={styles.error}>{loadError}<button type="button" onClick={() => void loadItem(lifecycle.current?.signal)}>重试加载衣物</button></div>}
     {!loading && !loadError && <>
+      {canRecordWear && <WatchWearForm key={`${item.id}:${item.watchStartedOn}`} item={item} onReload={() => void loadItem(lifecycle.current?.signal)} onSaved={(value) => {
+        setItem(value); setForm(formFrom(value)); setColorNames(value.colorNames.join(" / ")); setColorHexes(value.colorHexes.join(" / ")); setSaved(null); setWearRecorded(true);
+      }} />}
       <div className={styles.preview}>{preview ? <Image src={preview} alt="衣物照片预览" width={800} height={800} unoptimized /> : <div className={styles.photoEmpty}><span aria-hidden="true">＋</span><p>留下它原本的样子</p><small>也可以先保存资料，稍后补照片</small></div>}</div>
       <PhotoPicker disabled={busy || !!unconfirmed || !editable} onSelect={(file) => { setSaved(null); upload.select(file); }} />
-      <div className={styles.status} role="status">{unconfirmed ? "照片绑定结果未确认" : uploadBusy ? "正在上传" : saved ? saved === "active" ? "已保存到衣橱" : "已保存" : upload.state === "ready" ? "照片已上传" : ""}</div>
+      <div className={styles.status} role="status" tabIndex={-1} ref={wearStatus}>{wearRecorded ? "已记录手动穿着日期，已退出观察。" : unconfirmed ? "照片绑定结果未确认" : uploadBusy ? "正在上传" : saved ? saved === "active" ? "已保存到衣橱" : "已保存" : upload.state === "ready" ? "照片已上传" : ""}</div>
+      {wearRecorded && <Link className={styles.secondary} href="/app/idle">返回闲置衣物</Link>}
       {unconfirmed && <div role="alert" className={styles.error}><p>照片绑定结果未确认。为避免旧照片覆盖新照片，暂不能继续绑定或保存。请核对服务器照片后再重试。</p>{confirmationError && <p>{confirmationError}</p>}<button type="button" onClick={() => void checkAttachment()} disabled={checkingAttachment}>{checkingAttachment ? "正在核对…" : "核对服务器照片"}</button></div>}
       {upload.state === "retry" && !unconfirmed && <div role="alert" className={styles.error}><p>需要重试：{upload.error}</p><button type="button" onClick={upload.retry} disabled={busy}>重试照片</button></div>}
-      {!editable && <p role="alert" className={styles.error}>这件衣物目前不能编辑。</p>}
+      {!editable && !canRecordWear && <p role="alert" className={styles.error}>这件衣物目前不能编辑。</p>}
       <form onSubmit={(event) => { event.preventDefault(); void save(false); }}>
         <fieldset className={styles.card} disabled={busy || !editable}>
           <legend className={styles.visuallyHidden}>衣物资料</legend>
