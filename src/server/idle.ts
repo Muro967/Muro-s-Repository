@@ -15,7 +15,10 @@ export function bindProductionIdleHandler(action: RootAction | ItemAction) {
     try {
       const auth = getProductionAuthRouteDependencies();
       const handlers = createIdleHandlers({ appUrl: auth.appUrl, authRepository: auth.repository, now: auth.now, repository: new DrizzleIdleRepository(getDb()) });
-      const id = routeContext ? (await routeContext.params).itemId : "";
+      // Next passes { params: undefined } to static routes as well.
+      if (action === "readIdleDashboard" || action === "readIdleSettings" || action === "updateIdleSettings") return await handlers[action](request);
+      const id = (await routeContext?.params)?.itemId;
+      if (typeof id !== "string") return apiError("INTERNAL_ERROR", 500, "The request could not be completed.");
       return await handlers[action](request, id);
     } catch { return apiError("INTERNAL_ERROR", 500, "The request could not be completed."); }
   };

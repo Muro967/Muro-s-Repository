@@ -20,11 +20,15 @@ export function BottomSheet({ open, title, description, onClose, fallbackFocusRe
   const id = useId();
   const panel = useRef<HTMLElement>(null);
   const overlay = useRef<HTMLDivElement>(null);
+  const focusOrigin = useRef<HTMLElement | null>(null);
   const close = useRef(onClose);
   useLayoutEffect(() => { close.current = onClose; });
   useLayoutEffect(() => {
     if (!open || !panel.current || !overlay.current) return;
-    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // StrictMode may replay this effect after focus has already entered the panel.
+    // Keep the outside opening control instead of capturing our own close button.
+    if (!panel.current.contains(document.activeElement)) focusOrigin.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const trigger = focusOrigin.current;
     const fallback = fallbackFocusRef?.current ?? null;
     const overflow = document.body.style.overflow;
     const background = Array.from(document.body.children).filter((element) => element !== overlay.current).map((element) => ({ element, inert: element.getAttribute("inert"), hidden: element.getAttribute("aria-hidden") }));

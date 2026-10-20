@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { StrictMode, useRef, useState } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BottomSheet } from "@/components/overlays/bottom-sheet";
@@ -54,4 +54,14 @@ test.each(["removed", "disabled", "hidden"])("restores a usable fallback when th
   await userEvent.click(screen.getByRole("button", { name: "删除分区" }));
   await userEvent.click(screen.getByRole("button", { name: "确认删除" }));
   expect(screen.getByRole("button", { name: "添加分区" })).toHaveFocus();
+});
+test("preserves the opening trigger across StrictMode replay for a conditionally mounted sheet", async () => {
+  function MountedHarness() {
+    const [open, setOpen] = useState(false); const fallback = useRef<HTMLButtonElement>(null);
+    return <><button onClick={() => setOpen(true)}>处置衣物</button><button ref={fallback}>闲置衣物</button>{open && <BottomSheet open title="处置衣物" fallbackFocusRef={fallback} onClose={() => setOpen(false)}><input aria-label="备注" /></BottomSheet>}</>;
+  }
+  render(<StrictMode><MountedHarness /></StrictMode>);
+  await userEvent.click(screen.getByRole("button", { name: "处置衣物" }));
+  await userEvent.keyboard("{Escape}");
+  expect(screen.getByRole("button", { name: "处置衣物" })).toHaveFocus();
 });

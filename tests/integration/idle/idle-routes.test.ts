@@ -73,3 +73,13 @@ test("accepts absent empty-command bodies while rejecting malformed provided JSO
     expect((await action(malformed, id)).status).toBe(400);
   }
 });
+test("accepts Next's params-undefined context for static idle and settings routes", async () => {
+  const root = await import("@/app/api/idle/route");
+  const settings = await import("@/app/api/settings/idle/route");
+  const nextStaticCall = (handler: (request: Request) => Promise<Response>, req: Request) =>
+    (handler as (request: Request, context: { params: undefined }) => Promise<Response>)(req, { params: undefined });
+  expect((await nextStaticCall(root.GET, request())).status).toBe(200);
+  expect((await nextStaticCall(settings.GET, request())).status).toBe(200);
+  expect((await nextStaticCall(settings.PATCH, request({ idleDays: 120 }))).status).toBe(200);
+  expect((await (await settings.GET(request())).json()).settings.idleDays).toBe(120);
+});

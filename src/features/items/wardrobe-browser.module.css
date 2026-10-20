@@ -48,7 +48,7 @@
 .badge { font-size: 9px; padding: 3px 5px; background: var(--rose-light); border-radius: 6px; display: inline-block; margin: 4px 2px; }
 .manage { display: block; width: 100%; min-height: 44px; background: none; border: 0; color: var(--sage-dark); font-size: 20px; line-height: 1; }
 .fab { position: fixed; right: max(24px, calc((100vw - 480px) / 2 + 24px)); bottom: calc(108px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: var(--sage-dark); color: white; font-size: 34px; box-shadow: 0 7px 18px #3e3a361a; z-index: 5; }
-.iconButton { position: relative; border: 0; background: var(--card); width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--ink); }
+.iconButton { position: relative; border: 0; background: var(--card); width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--ink); }
 .iconButton svg, .searchField svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; }
 .counter { position: absolute; right: -2px; top: -4px; border-radius: 50%; background: var(--rose); color: white; font-size: 10px; min-width: 17px; padding: 1px 4px; }
 .empty { text-align: center; padding: 34px 14px; border-radius: 24px; background: var(--card); color: var(--ink-2); }
