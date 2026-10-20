@@ -5,12 +5,12 @@ import OutfitsPage from "@/app/(app)/app/outfits/page";
 import InspirationPage from "@/app/(app)/app/inspiration/page";
 import { LogoutButton } from "@/features/auth/logout-button";
 import userEvent from "@testing-library/user-event";
+import { browserResponse, json } from "../../helpers/item-browser-fixture";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh: vi.fn() }) }));
 
 test.each([
-  [WardrobePage, "衣橱还是空的", "下一阶段会在这里添加衣物", "衣橱"],
   [OutfitsPage, "还没有可搭配的衣物", "搭配只会使用你衣橱里的衣物", "搭配"],
   [InspirationPage, "还没有灵感图", "收集喜欢的穿搭，从这里慢慢认识自己的风格", "灵感"],
 ])("shows honest empty state for %s", (Page, title, description, tab) => {
@@ -19,6 +19,15 @@ test.each([
   expect(screen.getByText(description)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: tab })).toHaveAttribute("aria-current", "page");
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
+});
+test("loads the real wardrobe empty state while keeping its active primary tab", async () => {
+  vi.stubGlobal("fetch", async (url: string) => json(url === "/api/wardrobes" ? { wardrobes: [] } : { ...browserResponse, items: [], total: 0 }));
+  try {
+    render(<WardrobePage />);
+    expect(await screen.findByRole("heading", { name: "这里还没有衣物" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "衣橱" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "添加衣物" })).toHaveAttribute("href", "/app/items/new");
+  } finally { vi.unstubAllGlobals(); }
 });
 
 test("logs out through the server before returning to login", async () => {

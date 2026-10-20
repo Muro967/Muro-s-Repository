@@ -1,0 +1,21 @@
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { SearchPanel } from "@/features/items/search-panel";
+import { browserResponse, json } from "../../helpers/item-browser-fixture";
+afterEach(() => vi.unstubAllGlobals());
+test("debounces requests aborts obsolete searches and ignores late results even when fetch ignores abort", async () => {
+ const pending: { url: string; signal: AbortSignal; resolve: (r: Response) => void }[] = [];
+ vi.stubGlobal("fetch", (url: string, init: RequestInit) => url === "/api/wardrobes" ? Promise.resolve(json({ wardrobes: [] })) : new Promise<Response>((resolve) => pending.push({ url, signal: init.signal!, resolve })));
+ render(<SearchPanel />);
+ fireEvent.change(screen.getByRole("searchbox"), { target: { value: "旧" } });
+ await waitFor(() => expect(pending.some((p) => p.url.includes("q=%E6%97%A7"))).toBe(true));
+ const old = pending.find((p) => p.url.includes("q=%E6%97%A7"))!;
+ fireEvent.change(screen.getByRole("searchbox"), { target: { value: "新" } });
+ expect(old.signal.aborted).toBe(true);
+ await waitFor(() => expect(pending.some((p) => p.url.includes("q=%E6%96%B0"))).toBe(true));
+ const current = pending.find((p) => p.url.includes("q=%E6%96%B0"))!;
+ await act(async () => current.resolve(json({ ...browserResponse, total: 12, items: [{ ...browserResponse.items[0], name: "新衣服" }] })));
+ expect(await screen.findByText("找到 12 件")).toBeVisible();
+ await act(async () => old.resolve(json({ ...browserResponse, items: [{ ...browserResponse.items[0], name: "过期结果" }] })));
+ expect(screen.queryByText("过期结果")).not.toBeInTheDocument();
+ expect(screen.getByText("新衣服")).toBeVisible();
+});

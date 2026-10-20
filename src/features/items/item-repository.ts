@@ -17,11 +17,14 @@ export type ItemDetail = Required<EditableItemPatch> & {
 export type OriginalUpload = { id: string; objectKey: string; contentType: UploadContentType; sizeBytes: number };
 export type VerifiedImage = OriginalUpload & { width: number; height: number };
 export class ItemError extends Error {
-  constructor(readonly code: "NOT_FOUND" | "INVALID_INPUT" | "ITEM_INCOMPLETE" | "ITEM_NOT_EDITABLE" | "INVALID_IMAGE" | "ASSET_CONFLICT") {
+  constructor(readonly code: "NOT_FOUND" | "INVALID_INPUT" | "ITEM_INCOMPLETE" | "ITEM_NOT_EDITABLE" | "INVALID_IMAGE" | "ASSET_CONFLICT" | "RESTORE_EXPIRED") {
     super(code); this.name = "ItemError";
   }
 }
 export interface ItemRepository {
+  moveItem(userId: string, itemId: string, destination: { wardrobeId: string; zoneId: string }): Promise<ItemDetail>;
+  softDeleteItem(userId: string, itemId: string, now: Date): Promise<ItemDetail>;
+  restoreItem(userId: string, itemId: string, today: string): Promise<ItemDetail>;
   createDraft(userId: string, input: CreateDraftInput): Promise<ItemDetail>;
   updateItem(userId: string, itemId: string, patch: EditableItemPatch): Promise<ItemDetail>;
   attachOriginal(userId: string, itemId: string, uploadId: string, image: VerifiedImage): Promise<void>;

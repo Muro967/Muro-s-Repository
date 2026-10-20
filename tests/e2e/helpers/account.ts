@@ -16,5 +16,5 @@ export async function registerAndOnboard(page: Page, name: string) {
   await page.getByLabel("第一个衣柜名称", { exact: true }).fill("测试衣柜");
   await page.getByRole("button", { name: "开启我的衣橱" }).click();
   await expect(page).toHaveURL(/\/app\/wardrobe$/);
-  await expect(page.getByText("衣橱还是空的")).toBeVisible();
+  await expect(page.getByText("这里还没有衣物")).toBeVisible();
 }

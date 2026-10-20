@@ -1,5 +1,9 @@
 import "server-only";
 import { createItemHandlers, type ItemRouteDependencies } from "@/features/items/item-routes";
+import { createItemListHandler } from "@/features/items/item-list-route";
+import { calendarDate } from "@/features/items/item-lifecycle";
+import { eq } from "drizzle-orm";
+import { userSettings } from "./db/schema";
 import { createPrivateImageHandler } from "@/features/storage/private-image-routes";
 import { getProductionAuthRouteDependencies } from "./auth";
 import { getDb } from "./db/client";
@@ -10,7 +14,14 @@ import { createStorageProvider } from "./storage";
 export function getProductionItemDependencies(): ItemRouteDependencies {
   const auth = getProductionAuthRouteDependencies();
   return { appUrl: auth.appUrl, authRepository: auth.repository, now: auth.now,
+    todayForUser: async (id, now) => { const [settings] = await getDb().select({ timeZone: userSettings.timeZone }).from(userSettings).where(eq(userSettings.userId, id)); return calendarDate(now, settings?.timeZone ?? "UTC"); },
     today: () => auth.now().toISOString().slice(0, 10), repository: new DrizzleItemRepository(getDb()), provider: createStorageProvider() };
+}
+export async function listProductionItems(request: Request) {
+  try {
+    const auth = getProductionAuthRouteDependencies();
+    return await createItemListHandler({ database: getDb(), authRepository: auth.repository, now: auth.now, cursorKey: auth.invitePepper })(request);
+  } catch { return apiError("INTERNAL_ERROR", 500, "The request could not be completed."); }
 }
 type Action = keyof ReturnType<typeof createItemHandlers>;
 type ItemContext = { params: Promise<{ itemId: string }> };

@@ -2,7 +2,8 @@ import "server-only";
 import { and, asc, eq } from "drizzle-orm";
 import { ItemError, type CreateDraftInput, type EditableItemPatch, type ItemDetail, type ItemRepository, type OriginalUpload, type VerifiedImage } from "@/features/items/item-repository";
 import type { UploadContentType } from "@/features/storage/storage-provider";
-import { itemAssets, items, uploads, users, wardrobes, zones } from "./schema";
+import { restoreWindow } from "@/features/items/item-lifecycle";
+import { itemAssets, items, uploads, users, userSettings, wardrobes, zones } from "./schema";
 import type { AppDatabase, PgliteAppDatabase } from "./types";
 
 type Transaction = Parameters<Parameters<PgliteAppDatabase["transaction"]>[0]>[0];
@@ -60,6 +61,32 @@ export class DrizzleItemRepository implements ItemRepository {
       location({ wardrobeId: input.wardrobeId ?? null, zoneId: input.zoneId ?? null }, locations);
       const [item] = await tx.insert(items).values({ ...input, userId, status: "draft" }).returning();
       return this.detail(tx, item!);
+    });
+  }
+  moveItem(userId: string, id: string, destination: { wardrobeId: string; zoneId: string }) {
+    return this.write(userId, async (tx, locations) => {
+      await this.lockedItem(tx, userId, id);
+      location(destination, locations);
+      const [updated] = await tx.update(items).set(destination).where(and(eq(items.userId, userId), eq(items.id, id))).returning();
+      return this.detail(tx, updated!);
+    });
+  }
+  softDeleteItem(userId: string, id: string, now: Date) {
+    return this.write(userId, async (tx) => {
+      const item = await this.lockedItem(tx, userId, id);
+      if (item.deletedAt) return this.detail(tx, item);
+      const [updated] = await tx.update(items).set({ deletedAt: now }).where(and(eq(items.userId, userId), eq(items.id, id))).returning();
+      return this.detail(tx, updated!);
+    });
+  }
+  restoreItem(userId: string, id: string, today: string) {
+    return this.write(userId, async (tx) => {
+      const item = await this.lockedItem(tx, userId, id);
+      if (!item.deletedAt) return this.detail(tx, item);
+      const [settings] = await tx.select({ timeZone: userSettings.timeZone }).from(userSettings).where(eq(userSettings.userId, userId));
+      if (!restoreWindow(item.deletedAt, today, settings?.timeZone ?? "UTC").canRestore) throw new ItemError("RESTORE_EXPIRED");
+      const [updated] = await tx.update(items).set({ deletedAt: null }).where(and(eq(items.userId, userId), eq(items.id, id))).returning();
+      return this.detail(tx, updated!);
     });
   }
   updateItem(userId: string, id: string, patch: EditableItemPatch) {

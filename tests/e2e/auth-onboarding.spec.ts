@@ -19,7 +19,7 @@ test("registers by invitation, saves onboarding, logs out and returns after logi
   await page.getByLabel("密码", { exact: true }).fill("wardrobe-e2e-password-2026");
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/wardrobe$/);
-  await expect(page.getByText("衣橱还是空的")).toBeVisible();
+  await expect(page.getByText("这里还没有衣物")).toBeVisible();
 
   const second = await context.browser()!.newContext();
   try {
