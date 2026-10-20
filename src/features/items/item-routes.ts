@@ -61,7 +61,13 @@ export function createItemHandlers(deps: ItemRouteDependencies) {
     }, true),
     create: authenticated(true, async (userId, body) => jsonResponse({ item: await service.createDraft(userId, body) }, 201)),
     read: authenticated(false, async (userId, _body, id) => jsonResponse({ item: await service.readItem(userId, id) })),
-    update: authenticated(true, async (userId, body, id) => jsonResponse({ item: await service.updateItem(userId, id, body) })),
+    update: authenticated(true, async (userId, body, id) => {
+      // Preserve malformed-resource 404s before the timezone/settings lookup.
+      itemResourceId(id);
+      const today = deps.todayForUser ? await deps.todayForUser(userId, deps.now()) : deps.today();
+      const userService = createItemService({ ...deps, today: () => today });
+      return jsonResponse({ item: await userService.updateItem(userId, id, body) });
+    }),
     activate: authenticated(true, async (userId, body, id) => jsonResponse({ item: await service.activateItem(userId, id, body) })),
     attach: authenticated(true, async (userId, body, id) => {
       const parsed = z.strictObject({ uploadId: z.uuid() }).safeParse(body);
