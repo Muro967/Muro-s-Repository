@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export type ApiErrorCode =
   | "INVALID_INPUT"
+  | "INVALID_STATE"
   | "INVALID_INVITE"
   | "EMAIL_IN_USE"
   | "INVALID_CREDENTIALS"

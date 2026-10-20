@@ -11,8 +11,8 @@ type ItemRow = typeof items.$inferSelect;
 type Locations = { wardrobes: (typeof wardrobes.$inferSelect)[]; zones: (typeof zones.$inferSelect)[] };
 const originalFields = { id: uploads.id, objectKey: uploads.objectKey, contentType: uploads.contentType, sizeBytes: uploads.sizeBytes };
 const originalFilter = (userId: string) => and(eq(uploads.userId, userId), eq(uploads.kind, "wardrobe-original"), eq(uploads.status, "completed"));
-function editable(item: ItemRow) {
-  if (item.deletedAt || !["draft", "active"].includes(item.status)) throw new ItemError("ITEM_NOT_EDITABLE");
+function editable(item: ItemRow, watching = false) {
+  if (item.deletedAt || !["draft", "active", ...(watching ? ["watching"] : [])].includes(item.status)) throw new ItemError("ITEM_NOT_EDITABLE");
 }
 function location(item: Pick<ItemRow, "wardrobeId" | "zoneId">, locations: Locations) {
   if (item.zoneId && !item.wardrobeId) throw new ItemError("INVALID_INPUT");
@@ -92,14 +92,15 @@ export class DrizzleItemRepository implements ItemRepository {
   updateItem(userId: string, id: string, patch: EditableItemPatch) {
     return this.write(userId, async (tx, locations) => {
       const item = await this.lockedItem(tx, userId, id);
-      editable(item);
+      editable(item, true);
       const merged = { ...item, ...patch };
       location(merged, locations);
-      if (item.status === "active") {
+      if (item.status === "active" || item.status === "watching") {
         complete(merged);
         if (!await this.boundOriginal(tx, userId, id)) throw new ItemError("ITEM_INCOMPLETE");
       }
-      const [updated] = await tx.update(items).set({ ...patch, updatedAt: new Date() }).where(and(eq(items.userId, userId), eq(items.id, id))).returning();
+      const wornDuringWatch = item.status === "watching" && patch.manualLastWornOn && item.watchStartedOn && patch.manualLastWornOn >= item.watchStartedOn;
+      const [updated] = await tx.update(items).set({ ...patch, ...(wornDuringWatch ? { status: "active" as const, watchStartedOn: null, watchDueOn: null } : {}), updatedAt: new Date() }).where(and(eq(items.userId, userId), eq(items.id, id))).returning();
       return this.detail(tx, updated!);
     });
   }
