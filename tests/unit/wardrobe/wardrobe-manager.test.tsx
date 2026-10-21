@@ -2,13 +2,15 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WardrobeManager } from "@/features/wardrobe/wardrobe-manager";
 import { wardrobes } from "./fixtures";
+import { browserResponse, json } from "../../helpers/item-browser-fixture";
 
 afterEach(() => vi.unstubAllGlobals());
 
-function apiFixture() {
+function apiFixture(items: (path: string, init: RequestInit) => Promise<Response> | Response = () => json({ ...browserResponse, items: [], total: 0 })) {
   let tree = structuredClone(wardrobes);
   const writes: { method: string; path: string; body: Record<string, unknown> }[] = [];
   vi.stubGlobal("fetch", async (path: string, init: RequestInit) => {
+    if (path.startsWith("/api/items?")) return items(path, init);
     const body = init.body ? JSON.parse(String(init.body)) as Record<string, unknown> : {};
     if (init.method === "GET") return new Response(JSON.stringify({ wardrobes: tree }));
     writes.push({ method: init.method!, path, body });
@@ -30,16 +32,94 @@ function apiFixture() {
   return writes;
 }
 
-test("loads cabinet zones and shows an honest unavailable garment list without invented counts", async () => {
-  apiFixture();
+test("loads the initial selected zone's real private image and detail link without invented wear counts", async () => {
+  apiFixture((path) => {
+    const query = new URL(path, "http://localhost").searchParams;
+    return json(query.get("scope") === "browse" && query.get("wardrobeId") === "w1" && query.get("zoneId") === "z1" ? browserResponse : { ...browserResponse, items: [], total: 0 });
+  });
   render(<WardrobeManager />);
   expect(await screen.findByRole("button", { name: "主卧衣柜 4 个分区" })).toHaveAttribute("aria-pressed", "true");
   const cabinet = screen.getByRole("group", { name: "主卧衣柜的分区" });
   expect(within(cabinet).getAllByRole("button")).toHaveLength(4);
-  await userEvent.click(within(cabinet).getByRole("button", { name: "抽屉，抽屉" }));
-  expect(screen.getByRole("heading", { name: "主卧衣柜 › 抽屉" })).toBeInTheDocument();
-  expect(screen.getByText("衣物列表暂不可列出")).toBeInTheDocument();
+  const list = screen.getByRole("region", { name: "所选分区的衣物" });
+  expect(await within(list).findByRole("img", { name: "燕麦针织开衫" })).toHaveAttribute("src", browserResponse.items[0].original.contentUrl);
+  expect(within(list).getByRole("link", { name: /燕麦针织开衫/ })).toHaveAttribute("href", `/app/items/${browserResponse.items[0].id}`);
+  expect(within(list).getByText("共 1 件")).toBeInTheDocument();
+  expect(within(list).getByText("未填写最后穿着")).toBeInTheDocument();
   expect(screen.queryByText(/穿过.*次/)).not.toBeInTheDocument();
+});
+
+test("clears old garments while switching zones and ignores an aborted zone response", async () => {
+  let release!: (response: Response) => void;
+  let oldSignal: AbortSignal | undefined;
+  apiFixture((path, init) => {
+    const zone = new URL(path, "http://localhost").searchParams.get("zoneId");
+    if (zone === "z1") { oldSignal = init.signal!; return new Promise<Response>((resolve) => { release = resolve; }); }
+    return json({ ...browserResponse, items: [{ ...browserResponse.items[0], name: zone === "z3" ? "抽屉围巾" : "次卧外套", status: "watching" }], total: 1 });
+  });
+  render(<WardrobeManager />);
+  await waitFor(() => expect(release).toBeTypeOf("function"));
+  expect(screen.getByText("正在加载分区衣物…")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "抽屉，抽屉" }));
+  expect(await screen.findByRole("img", { name: "抽屉围巾" })).toBeInTheDocument();
+  expect(screen.getByText("观察中")).toBeInTheDocument();
+  expect(oldSignal?.aborted).toBe(true);
+  await act(async () => { release(json(browserResponse)); });
+  expect(screen.queryByRole("img", { name: "燕麦针织开衫" })).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "次卧衣柜 1 个分区" }));
+  expect(screen.queryByRole("img", { name: "抽屉围巾" })).not.toBeInTheDocument();
+  expect(await screen.findByRole("img", { name: "次卧外套" })).toBeInTheDocument();
+});
+
+test("shows truthful empty results and recovers a failed zone load with retry", async () => {
+  let failed = true;
+  apiFixture(() => failed ? json({ error: { code: "UNAVAILABLE" } }, 503) : json({ ...browserResponse, items: [], total: 0 }));
+  render(<WardrobeManager />);
+  const list = await screen.findByRole("region", { name: "所选分区的衣物" });
+  expect(await within(list).findByRole("alert")).toHaveTextContent("衣物加载失败");
+  expect(within(list).queryByText(/共 \d+ 件/)).not.toBeInTheDocument();
+  failed = false;
+  await userEvent.click(within(list).getByRole("button", { name: "重试加载衣物" }));
+  expect(await within(list).findByText("共 0 件")).toBeInTheDocument();
+  expect(within(list).getByRole("heading", { name: "这个分区还没有在用衣物" })).toBeInTheDocument();
+  expect(within(list).queryByRole("alert")).not.toBeInTheDocument();
+});
+
+test("keeps the server total and offers the first page when a later page becomes empty", async () => {
+  apiFixture((path) => {
+    const cursor = new URL(path, "http://localhost").searchParams.get("cursor");
+    return json({ ...browserResponse, items: cursor === "page-2" ? [] : browserResponse.items, total: 31, nextCursor: cursor ? null : "page-2" });
+  });
+  render(<WardrobeManager />);
+  await screen.findByRole("img", { name: "燕麦针织开衫" });
+  expect(screen.getByText("共 31 件")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "下一页衣物" }));
+  expect(await screen.findByRole("heading", { name: "这一页没有衣物" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "这个分区还没有在用衣物" })).not.toBeInTheDocument();
+  expect(screen.getByText("共 31 件")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "返回第一页衣物" }));
+  expect(await screen.findByRole("img", { name: "燕麦针织开衫" })).toBeInTheDocument();
+});
+
+test("invalidates pending zone garments when a location mutation begins and reloads after saving", async () => {
+  let release!: (response: Response) => void;
+  let first = true;
+  apiFixture(() => {
+    if (first) { first = false; return new Promise<Response>((resolve) => { release = resolve; }); }
+    return json({ ...browserResponse, items: [{ ...browserResponse.items[0], name: "保存后衣物" }] });
+  });
+  render(<WardrobeManager />);
+  await waitFor(() => expect(release).toBeTypeOf("function"));
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "编辑分区" }));
+  await user.click(screen.getByRole("button", { name: "改名短挂区" }));
+  await user.clear(screen.getByRole("textbox", { name: "分区名称" }));
+  await user.type(screen.getByRole("textbox", { name: "分区名称" }), "外套挂区");
+  await user.click(screen.getByRole("button", { name: "保存分区" }));
+  expect(await screen.findByRole("img", { name: "保存后衣物" })).toBeInTheDocument();
+  await act(async () => { release(json(browserResponse)); });
+  expect(screen.queryByRole("img", { name: "燕麦针织开衫" })).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "主卧衣柜 › 外套挂区" })).toBeInTheDocument();
 });
 
 test("creates a wardrobe only after the server accepts the form", async () => {
@@ -202,6 +282,7 @@ test.each(["old snapshot", "old error"])("ignores a retry GET's %s when it arriv
   let releaseOldRead: (response: Response) => void = () => {};
   let reads = 0;
   vi.stubGlobal("fetch", async (_path: string, init: RequestInit) => {
+    if (_path.startsWith("/api/items?")) return json({ ...browserResponse, items: [], total: 0 });
     if (init.method === "GET") {
       reads += 1;
       if (reads === 1) return new Promise<Response>((resolve) => { releaseOldRead = resolve; });

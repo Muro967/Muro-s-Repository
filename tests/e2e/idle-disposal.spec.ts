@@ -56,6 +56,9 @@ test("manages idle garments through observation, manual wear and disposal", asyn
   await expect(page.getByText("闲置规则已保存", { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("闲置天数", { exact: true })).toHaveValue("120");
+  await expect(page.getByLabel("观察天数", { exact: true })).toHaveValue("45");
+  await expect(page.getByLabel("时区", { exact: true })).toHaveValue("Asia/Shanghai");
+  await expect(page.getByLabel("当前季节", { exact: true })).toHaveValue("autumn");
   for (const width of [320, 390, 480]) {
     for (const [name, path] of [["idle", "/app/idle"], ["settings", "/app/settings/idle"], ["profile", "/app/profile"]]) {
       await page.goto(path);

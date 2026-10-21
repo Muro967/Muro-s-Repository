@@ -10,6 +10,7 @@ import type { ZoneKind } from "./wardrobe-types";
 import { zoneKinds } from "./wardrobe-types";
 import { LocationPicker, type LocationValue } from "./location-picker";
 import { ZoneGrid, zoneKindLabels } from "./zone-grid";
+import { SelectedZoneItems } from "./selected-zone-items";
 import styles from "./wardrobe-manager.module.css";
 
 type Target = { kind: "wardrobe" | "zone"; id: string; name: string };
@@ -121,7 +122,7 @@ export function WardrobeManager() {
             <button type="button" className={styles.delete} disabled={busy} aria-label={`删除${entry.name}`} onClick={() => open({ mode: "delete", target: { kind: "zone", id: entry.id, name: entry.name } })}>删除</button>
           </div></div>)}
         </section>}
-        <section className={styles.items} aria-label="所选分区的衣物"><h2>{wardrobe.name}{zone ? ` › ${zone.name}` : ""}</h2><div className={styles.empty}>{zone ? <><h3>衣物列表暂不可列出</h3><p>衣柜和分区已连接。这里稍后会显示此分区的真实衣物。</p></> : <><h3>这个衣柜还没有分区</h3><p>添加第一个分区，给衣物安排一个位置。</p></>}</div></section>
+        <section className={styles.items} aria-label="所选分区的衣物"><h2>{wardrobe.name}{zone ? ` › ${zone.name}` : ""}</h2>{zone ? !busy && <SelectedZoneItems key={`${wardrobe.id}:${zone.id}`} wardrobeId={wardrobe.id} zoneId={zone.id} /> : <div className={styles.empty}><h3>这个衣柜还没有分区</h3><p>添加第一个分区，给衣物安排一个位置。</p></div>}</section>
       </> : <div className={styles.empty}><h2>从一个衣柜开始</h2><p>新建衣柜，再按你的收纳习惯添加分区。</p></div>}
     </>}
     <BottomSheet open={sheet !== null} title={sheetTitle} onClose={close} fallbackFocusRef={addZoneButton} description={sheet?.mode === "relocate" ? "请选择保留的目标分区。确认后会移动其中的衣物，并删除原位置。" : undefined}>

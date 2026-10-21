@@ -35,6 +35,14 @@ test("registers and manages a private garment through restore", async ({ page, b
   await page.getByLabel("目标分区").selectOption({ label: "挂衣区" });
   await page.getByRole("button", { name: "确认移动" }).click();
   await expect(page.getByText("客房衣柜 · 挂衣区", { exact: true })).toBeVisible();
+  await page.goto("/app/wardrobes");
+  await page.getByRole("button", { name: "客房衣柜 1 个分区", exact: true }).click();
+  const selectedZone = page.getByRole("region", { name: "所选分区的衣物", exact: true });
+  await expect(selectedZone.getByText("共 1 件", { exact: true })).toBeVisible();
+  await expect(selectedZone.getByRole("img", { name: "焦糖风衣", exact: true })).toHaveJSProperty("naturalWidth", 240);
+  await expect(selectedZone.getByRole("link", { name: /焦糖风衣/ })).toHaveAttribute("href", `/app/items/${item.id}`);
+  await page.goto("/app/search");
+  await page.getByRole("searchbox", { name: "搜索衣物" }).fill("焦糖");
   await page.getByRole("button", { name: "管理焦糖风衣" }).click();
   await page.getByRole("button", { name: "移入回收站", exact: true }).click();
   await expect(page.getByRole("img", { name: "焦糖风衣", exact: true })).toHaveCount(0);
@@ -61,6 +69,9 @@ test("registers and manages a private garment through restore", async ({ page, b
   const location = (await tree(page))[0];
   expect(location.name).toBe("测试衣柜");
   expect((await readItem(page, item.id)).wardrobeId).toBe(location.id);
+  await expect(selectedZone.getByRole("heading", { name: "测试衣柜 › 长挂区", exact: true })).toBeVisible();
+  await expect(selectedZone.getByText("共 1 件", { exact: true })).toBeVisible();
+  await expect(selectedZone.getByRole("img", { name: "焦糖风衣", exact: true })).toHaveJSProperty("naturalWidth", 240);
   await addGarment(page, { name: "米白衬衫", wardrobe: "测试衣柜", zone: "长挂区", format: "png" });
   await addGarment(page, { name: "雾蓝外套", wardrobe: "测试衣柜", zone: "长挂区", format: "webp" });
 

@@ -102,7 +102,11 @@ export async function evidence(page: Page, name: string, width: number, detail: 
   await page.setViewportSize({ width, height: 844 });
   // Capture loaded content, rather than a successful SSR shell before its effects.
   if (name === "wardrobe") await expect(page.getByRole("img", { name: "焦糖风衣", exact: true })).toBeVisible();
-  if (name === "wardrobes") await expect(page.getByRole("button", { name: "编辑分区", exact: true })).toBeVisible();
+  if (name === "wardrobes") {
+    const list = page.getByRole("region", { name: "所选分区的衣物", exact: true });
+    await expect(list.getByText("共 3 件", { exact: true })).toBeVisible();
+    for (const garment of ["焦糖风衣", "米白衬衫", "雾蓝外套"]) await expect(list.getByRole("img", { name: garment, exact: true })).toHaveJSProperty("naturalWidth", 240);
+  }
   if (name === "editor") await expect(page.getByLabel("名称", { exact: true })).toHaveValue("焦糖风衣");
   if (name === "search") await expect(page.getByRole("heading", { name: /^找到 \d+ 件$/ })).toBeVisible();
   if (name === "trash") await expect(page.getByRole("heading", { name: "回收站是空的", exact: true })).toBeVisible();
@@ -129,6 +133,16 @@ export async function evidence(page: Page, name: string, width: number, detail: 
   // An empty detail page has only its back link; Tab passes through browser chrome.
   if (await focused.count() === 0) await page.keyboard.press("Tab");
   await expect(focused).toHaveCount(1);
-  expect(await focused.evaluate((element) => getComputedStyle(element.matches('input[type="radio"]') ? element.nextElementSibling! : element).outlineStyle)).not.toBe("none");
+  const outline = await focused.evaluate((element) => {
+    const style = getComputedStyle(element.matches('input[type="radio"]') ? element.nextElementSibling! : element);
+    const probe = document.createElement("canvas").getContext("2d")!;
+    probe.fillStyle = style.outlineColor;
+    probe.fillRect(0, 0, 1, 1);
+    return { style: style.outlineStyle, width: parseFloat(style.outlineWidth), alpha: probe.getImageData(0, 0, 1, 1).data[3] };
+  });
+  expect(outline.style).not.toBe("none");
+  expect(outline.style).not.toBe("hidden");
+  expect(outline.width).toBeGreaterThan(0);
+  expect(outline.alpha).toBeGreaterThan(0);
   await page.screenshot({ path: `output/playwright/task10/${process.env.E2E_PRODUCTION === "1" ? "production" : "development"}-${name}-${width}.png`, fullPage: true, animations: "disabled", caret: "hide", timeout: 15_000 });
 }
