@@ -1,12 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { inviteCodeFor } from "./helpers/create-invite";
 import { registerAndOnboard } from "./helpers/account";
+import { isolatedContext, origin } from "./helpers/inventory";
 
 test("registers by invitation, saves onboarding, logs out and returns after login", async ({ page, context }) => {
   await registerAndOnboard(page, "auth");
   const session = (await context.cookies()).find((cookie) => cookie.name === "aiw_session");
   expect(session?.httpOnly).toBe(true);
   expect(session?.sameSite).toBe("Lax");
+  expect(session?.secure).toBe(process.env.E2E_PRODUCTION === "1");
   await page.getByRole("link", { name: "我的", exact: true }).click();
   await expect(page.getByText("纽约", { exact: true })).toBeVisible();
   await expect(page.getByText("中长发 · 偏直")).toBeVisible();
@@ -21,10 +23,10 @@ test("registers by invitation, saves onboarding, logs out and returns after logi
   await expect(page).toHaveURL(/\/app\/wardrobe$/);
   await expect(page.getByText("这里还没有衣物")).toBeVisible();
 
-  const second = await context.browser()!.newContext();
+  const second = await context.browser()!.newContext(isolatedContext);
   try {
-    const response = await second.request.post("http://127.0.0.1:3109/api/auth/register", {
-      headers: { origin: "http://127.0.0.1:3109" },
+    const response = await second.request.post(`${origin}/api/auth/register`, {
+      headers: { origin },
       data: { inviteCode: inviteCodeFor("auth"), email: "second@example.test", password: "wardrobe-e2e-password-2026", name: "Second" },
     });
     expect(response.status()).toBe(400);
@@ -33,7 +35,7 @@ test("registers by invitation, saves onboarding, logs out and returns after logi
 });
 
 test("redirects anonymous visitors from all protected pages", async ({ page }) => {
-  for (const path of ["wardrobe", "outfits", "inspiration", "profile", "onboarding"]) {
+  for (const path of ["wardrobe", "outfits", "inspiration", "profile", "onboarding", "wardrobes", "items/new", "items/00000000-0000-4000-8000-000000000000", "search", "trash", "idle", "settings/idle"]) {
     await page.goto(`/app/${path}`);
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByLabel("密码", { exact: true })).toBeVisible();

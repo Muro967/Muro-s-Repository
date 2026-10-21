@@ -6,6 +6,7 @@ import { afterEach, vi } from "vitest";
 import { readServerEnv } from "@/server/runtime/env";
 
 afterEach(() => {
+  delete (globalThis as typeof globalThis & { __aiWardrobeDatabase?: unknown }).__aiWardrobeDatabase;
   vi.unstubAllEnvs();
   vi.resetModules();
 });
@@ -51,8 +52,8 @@ test("uses the postgres driver when DATABASE_URL is configured", async () => {
   );
 });
 
-test("reuses the database connection across development module reloads", async () => {
-  vi.stubEnv("NODE_ENV", "development");
+test.each(["development", "production"])("reuses one PGlite writer across %s module copies", async (mode) => {
+  vi.stubEnv("NODE_ENV", mode);
   vi.stubEnv("DATABASE_URL", "");
   vi.stubEnv("PGLITE_DATA_DIR", "");
 
@@ -63,8 +64,12 @@ test("reuses the database connection across development module reloads", async (
   const secondModule = await import("@/server/runtime/db");
   const second = secondModule.getDb();
 
-  expect(second).toBe(first);
-  const client = first.$client as PGlite;
-  await client.waitReady;
-  await client.close();
+  const clients = [...new Set([first.$client as PGlite, second.$client as PGlite])];
+  try {
+    expect(second).toBe(first);
+    await clients[0].exec("CREATE TABLE runtime_module_probe (value text); INSERT INTO runtime_module_probe VALUES ('saved through first module')");
+    expect((await (second.$client as PGlite).query("SELECT value FROM runtime_module_probe")).rows).toEqual([{ value: "saved through first module" }]);
+  } finally {
+    await Promise.all(clients.map(async (client) => { await client.waitReady; await client.close(); }));
+  }
 });

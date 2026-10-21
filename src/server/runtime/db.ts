@@ -29,9 +29,13 @@ function createDatabase(): AppDatabase {
 
 export function getDb(): AppDatabase {
   const environment = readServerEnv();
+  // Production SSR and route bundles have separate module caches. PGlite must
+  // still have one writer per process so every bundle sees the same committed data.
+  const shared = environment.NODE_ENV === "development" ||
+    (environment.NODE_ENV === "production" && !environment.DATABASE_URL);
 
   if (
-    environment.NODE_ENV === "development" &&
+    shared &&
     globalForDatabase.__aiWardrobeDatabase
   ) {
     return globalForDatabase.__aiWardrobeDatabase;
@@ -39,7 +43,7 @@ export function getDb(): AppDatabase {
 
   database ??= createDatabase();
 
-  if (environment.NODE_ENV === "development") {
+  if (shared) {
     globalForDatabase.__aiWardrobeDatabase = database;
   }
 

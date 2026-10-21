@@ -7,6 +7,7 @@ import { migrateDatabase } from "../src/server/db/migrate";
 import { schema } from "../src/server/db/schema";
 import { createInvite } from "../tests/e2e/helpers/create-invite";
 import { resetE2eDirectory } from "./e2e-directory";
+import { seedIdleInventory } from "../tests/e2e/helpers/inventory-seed";
 
 const root = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), ".."));
 const target = join(root, ".data", "e2e");
@@ -17,7 +18,7 @@ if (process.env.E2E_RUN !== "1" || process.argv.length !== 2 || process.env.DATA
   throw new Error("Refusing reset outside the isolated Playwright environment");
 }
 // Validate all seeds before deleting anything. No .env files are loaded here.
-const names = ["auth", "mobile-320", "mobile-390", "mobile-480"];
+const names = ["auth", "mobile-320", "mobile-390", "mobile-480", "inventory", "intruder"];
 const { inviteCodeFor } = await import("../tests/e2e/helpers/create-invite");
 for (const name of names) inviteCodeFor(name);
 await resetE2eDirectory(root, target);
@@ -26,4 +27,5 @@ try {
   const database = drizzle({ client, schema });
   await migrateDatabase(database);
   for (const name of names) await createInvite(database, name);
+  await seedIdleInventory(database, join(target, "uploads"));
 } finally { await client.close(); }
