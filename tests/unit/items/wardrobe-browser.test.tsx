@@ -3,6 +3,31 @@ import userEvent from "@testing-library/user-event";
 import { WardrobeBrowser } from "@/features/items/wardrobe-browser";
 import { browserResponse, browserItem, browserWardrobes, json } from "../../helpers/item-browser-fixture";
 afterEach(() => vi.unstubAllGlobals());
+
+test("a missing later page is not an empty wardrobe and can return to the first page", async () => {
+ vi.stubGlobal("fetch", async (url: string) => json(url === "/api/wardrobes" ? { wardrobes: browserWardrobes } : url.includes("cursor=") ? { ...browserResponse, items: [], total: 1 } : { ...browserResponse, nextCursor: "page2" }));
+ render(<WardrobeBrowser />);
+ await userEvent.click(await screen.findByRole("button", { name: "下一页" }));
+ expect(await screen.findByText("这一页没有衣物")).toBeVisible();
+ expect(screen.queryByText("这里还没有衣物")).not.toBeInTheDocument();
+ await userEvent.click(screen.getByRole("button", { name: "返回第一页" }));
+ expect(await screen.findByText("燕麦针织开衫")).toBeVisible();
+});
+
+test("a mutation on a later wardrobe page reloads the first page", async () => {
+ let deleted = false;
+ vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+  if (url === "/api/wardrobes") return json({ wardrobes: browserWardrobes });
+  if (init?.method === "DELETE") { deleted = true; return json({ ok: true }); }
+  return json({ ...browserResponse, items: url.includes("cursor=") && deleted ? [] : [{ ...browserResponse.items[0], name: deleted ? "第一页衣物" : "燕麦针织开衫" }], nextCursor: url.includes("cursor=") ? null : "page2" });
+ });
+ render(<WardrobeBrowser />);
+ await userEvent.click(await screen.findByRole("button", { name: "下一页" }));
+ await userEvent.click(await screen.findByRole("button", { name: "管理燕麦针织开衫" }));
+ await userEvent.click(screen.getByRole("button", { name: "移入回收站" }));
+ expect(await screen.findByText("第一页衣物")).toBeVisible();
+ expect(screen.queryByRole("button", { name: "返回第一页" })).not.toBeInTheDocument();
+});
 test("shows real counts location private image and draft editing entry without fabricated wear counts", async () => {
  const urls: string[] = [];
  vi.stubGlobal("fetch", async (url: string) => {

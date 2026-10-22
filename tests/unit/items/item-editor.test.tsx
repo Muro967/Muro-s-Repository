@@ -21,6 +21,26 @@ function fixture() {
 }
 function choose(name = "coat.jpg") { fireEvent.change(screen.getByLabelText("从相册选择"), { target: { files: [new File(["a"], name, { type: "image/jpeg" })] } }); }
 
+test("active edits use save-changes copy and retain active metadata after a failed save", async () => {
+  let fail = true;
+  vi.stubGlobal("fetch", async (path: string, init: RequestInit) => {
+    if (path === "/api/wardrobes") return json({ wardrobes: [] });
+    if (init.method === "GET") return json({ item: { ...item, status: "active", name: "风衣" } });
+    return fail ? json({ error: { code: "INTERNAL_ERROR" } }, 500) : json({ item: { ...item, status: "active", ...JSON.parse(String(init.body)) } });
+  });
+  render(<ItemEditor itemId={id} />);
+  await screen.findByDisplayValue("风衣");
+  expect(screen.queryByRole("button", { name: "保存草稿" })).not.toBeInTheDocument();
+  expect(screen.queryByText(/草稿可以暂缺/)).not.toBeInTheDocument();
+  await userEvent.type(screen.getByLabelText("名称"), "修改");
+  await userEvent.click(screen.getByRole("button", { name: "保存修改" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("保存资料失败");
+  expect(screen.getByLabelText("名称")).toHaveValue("风衣修改");
+  fail = false;
+  await userEvent.click(screen.getByRole("button", { name: "保存修改" }));
+  expect(await screen.findByText("已保存修改")).toBeVisible();
+});
+
 test("renders a blob preview synchronously before deferred upload resolves", async () => {
   fixture(); render(<ItemEditor submitUpload={() => new Promise(() => {})} />);
   choose();

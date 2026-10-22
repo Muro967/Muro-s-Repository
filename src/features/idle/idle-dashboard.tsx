@@ -2,7 +2,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { idleClient, dateDays, disposalChoices, formatMinor, type ClientIdleItem } from "./idle-client";
+import { idleClient, idleTimeZone, dateDays, disposalChoices, formatMinor, type ClientIdleItem } from "./idle-client";
 import { useIdleResource } from "./use-idle-resource";
 import { DisposalSheet } from "./disposal-sheet";
 import styles from "./idle-dashboard.module.css";
@@ -14,7 +14,7 @@ function RateCard({ label, rate, sage = false }: { label: string; rate: number; 
 function ItemImage({ item }: { item: ClientIdleItem }) { return <div className={styles.thumbnail}>{item.original ? <Image src={item.original.contentUrl} width={80} height={80} alt="" unoptimized /> : <span>暂无照片</span>}</div>; }
 
 export function IdleDashboard() {
-  const { data, error, loading, reload } = useIdleResource(idleClient.read);
+  const { data, error, loading, reload } = useIdleResource(idleClient.read, idleTimeZone);
   const [segment, setSegment] = useState<"idle" | "watching" | "disposed">("idle"); const [selected, setSelected] = useState<ClientIdleItem | null>(null);
   const [pending, setPending] = useState(""); const [mutationError, setMutationError] = useState(""); const [announcement, setAnnouncement] = useState("");
   const lock = useRef(false); const controller = useRef<AbortController | null>(null); const heading = useRef<HTMLHeadingElement>(null);
@@ -45,7 +45,7 @@ export function IdleDashboard() {
         {!data.disposals.length && <div className={styles.empty}><h2>还没有处置记录</h2><p>为不再需要的衣物安排下一站，记录会留在这里。</p></div>}
       </> : <><div className={styles.list}>{items.map((item) => {
         const remaining = item.watchDueOn ? dateDays(data.today, item.watchDueOn) : null;
-        return <article className={styles.item} key={item.id}><ItemImage item={item} /><div className={styles.itemCopy}><h2><Link href={`/app/items/${item.id}`}>{item.name}</Link></h2><p>{item.manualLastWornOn ? `手动最后穿着 ${item.manualLastWornOn}` : `入库 ${item.addedOn ?? "日期未填写"}`}</p>{item.status === "watching" && <p className={remaining !== null && remaining < 0 ? styles.overdue : styles.watchText}>{remaining === null ? "观察日期未填写" : remaining < 0 ? `观察已逾期 ${-remaining} 天` : remaining === 0 ? "观察今天到期" : `观察剩余 ${remaining} 天`}</p>}{item.status === "watching" && !item.isIdle && <p>当前不计入闲置</p>}</div><div className={styles.actions}><button type="button" disabled={busy} aria-label={`${item.status === "watching" ? "取消观察" : "观察"}${item.name}`} onClick={() => watch(item)}>{pending === item.id ? "保存中" : item.status === "watching" ? "取消观察" : "观察"}</button><button type="button" disabled={busy} aria-label={`处置${item.name}`} onClick={() => setSelected(item)}>处置</button></div></article>;
+        return <article className={styles.item} key={item.id}><ItemImage item={item} /><div className={styles.itemCopy}><h2><Link href={`/app/items/${item.id}`}>{item.name}</Link></h2><p>{item.manualLastWornOn ? `手动最后穿着 ${item.manualLastWornOn}` : `入库 ${item.addedOn ?? "日期未填写"}`}</p>{item.status === "watching" && <p className={item.isWatchOverdue ? styles.overdue : styles.watchText}>{remaining === null ? "观察日期未填写" : item.isWatchOverdue ? `观察已逾期 ${-remaining} 天` : remaining < 0 ? `观察截止 ${item.watchDueOn}` : remaining === 0 ? "观察今天到期" : `观察剩余 ${remaining} 天`}</p>}{item.status === "watching" && !item.isIdle && <p>当前不计入闲置</p>}</div><div className={styles.actions}><button type="button" disabled={busy} aria-label={`${item.status === "watching" ? "取消观察" : "观察"}${item.name}`} onClick={() => watch(item)}>{pending === item.id ? "保存中" : item.status === "watching" ? "取消观察" : "观察"}</button><button type="button" disabled={busy} aria-label={`处置${item.name}`} onClick={() => setSelected(item)}>处置</button></div></article>;
       })}</div>{!items.length && <div className={styles.empty}><h2>{segment === "watching" ? "还没有观察中的衣物" : "暂时没有闲置衣物"}</h2><p>{segment === "watching" ? "给还想再穿的衣物一点时间。" : "依据手动日期和当季规则，你的衣橱暂时没有闲置。"}</p></div>}</>}
     </>}
     {selected && data && <DisposalSheet key={selected.id} item={selected} today={data.today} fallbackFocusRef={heading} onClose={() => setSelected(null)} submit={async (input) => {

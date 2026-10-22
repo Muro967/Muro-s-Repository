@@ -29,6 +29,7 @@ export const idleDashboardSchema = z.object({
   settings: idleSettingsSchema, today: z.iso.date(), currentSeason: z.enum(seasons.map(({ id }) => id)),
 });
 export type IdleDashboardData = z.infer<typeof idleDashboardSchema>;
+export const idleTimeZone = (data: IdleDashboardData) => data.settings.timeZone;
 export type ClientIdleItem = z.infer<typeof itemSchema>;
 async function idleRequest<T>(path: string, method: string, schema: z.ZodType<T>, body?: unknown, signal?: AbortSignal) {
   try { return await itemRequest(path, method, schema, body, signal); }

@@ -5,13 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { itemEditorClient, type EditorItem } from "../items/item-editor-client";
 import { ItemClientError } from "../items/item-upload-client";
 import { dateOnlySchema } from "../items/item-validation";
-import { idleClient } from "./idle-client";
+import { idleClient, idleTimeZone } from "./idle-client";
 import { useIdleResource } from "./use-idle-resource";
 import styles from "./idle-dashboard.module.css";
 
 export function WatchWearForm({ item, onSaved, onReload }: { item: EditorItem; onSaved: (item: EditorItem) => void; onReload: () => void }) {
   // The dashboard supplies the server's calendar date in this user's saved timezone.
-  const { data, error: loadError, loading, reload } = useIdleResource(idleClient.read);
+  const { data, error: loadError, loading, reload } = useIdleResource(idleClient.read, idleTimeZone);
   const [date, setDate] = useState(""); const [pending, setPending] = useState(false); const [error, setError] = useState("");
   const locked = useRef(false); const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);

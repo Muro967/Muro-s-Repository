@@ -1,8 +1,26 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IdleDashboard } from "@/features/idle/idle-dashboard";
 import { idleDashboard, idleJson, idleItem, watchingItem } from "../../helpers/idle-dashboard-fixture";
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+test("an open dashboard fetches the new server date after midnight in the saved timezone", async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-20T15:59:30Z"));
+  let reads = 0;
+  vi.stubGlobal("fetch", async () => idleJson({ ...idleDashboard, today: ++reads === 1 ? "2026-10-20" : "2026-10-21", items: [{ ...watchingItem, watchDueOn: "2026-10-21", isWatchOverdue: false }] }));
+  render(<IdleDashboard />); await act(async () => {});
+  expect(screen.getByText("观察剩余 1 天")).toBeVisible();
+  await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+  expect(screen.getByText("观察今天到期")).toBeVisible();
+  expect(reads).toBe(2);
+});
+test("an expired deadline without authoritative overdue state remains neutral", async () => {
+  vi.stubGlobal("fetch", async () => idleJson({ ...idleDashboard, items: [{ ...watchingItem, isIdle: false, isWatchOverdue: false }] }));
+  render(<IdleDashboard />);
+  await userEvent.click(await screen.findByRole("button", { name: "观察中 1" }));
+  expect(screen.queryByText(/观察已逾期/)).not.toBeInTheDocument();
+  expect(screen.getByText("观察截止 2026-10-15")).not.toHaveClass(/overdue/);
+  expect(screen.getByText("当前不计入闲置")).toBeVisible();
+});
 test("shows truthful counts, watch overdue, and separate income currencies", async () => {
   vi.stubGlobal("fetch", async () => idleJson(idleDashboard)); render(<IdleDashboard />);
   expect(await screen.findByRole("button", { name: "全部闲置 2" })).toBeVisible();

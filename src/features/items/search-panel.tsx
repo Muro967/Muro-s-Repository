@@ -19,7 +19,7 @@ export function SearchPanel() {
   <fieldset className={styles.filter}><legend>风格</legend><div className={styles.styleChoices}>{itemStyles.map((s) => <button key={s.id} aria-pressed={styleId === s.id} onClick={() => change(() => setStyle(styleId === s.id ? "" : s.id))}>{s.label}</button>)}</div></fieldset>
   <div className={styles.heading}><h2>{data ? `找到 ${data.total} 件` : "搜索结果"}</h2><button className={styles.textButton} onClick={() => change(() => { setQuery(""); setCategory(""); setStyle(""); setAccessory(""); })}>清除</button></div>
   {loading && <p role="status">正在查找…</p>}{error && <p role="alert">{error}<button onClick={() => setRevision((n) => n + 1)}>重试</button></p>}
-  {data && (data.items.length ? <ItemGrid key={`${query}:${revision}`} items={data.items} onChanged={() => setRevision((n) => n + 1)} /> : <div className={styles.empty}><h3>没有找到衣物</h3><p>换个词试试，比如「衬衫」或「米色」。</p></div>)}
+  {data && (data.items.length ? <ItemGrid key={`${query}:${revision}`} items={data.items} onChanged={() => { setCursor(""); setRevision((n) => n + 1); }} /> : <div className={styles.empty}><h3>{data.total === 0 ? "没有找到衣物" : "这一页没有衣物"}</h3><p>{data.total === 0 ? "换个词试试，比如「衬衫」或「米色」。" : "衣物可能已更新，请返回第一页查看。"}</p></div>)}
   {data?.nextCursor && <button className={styles.pageButton} onClick={() => setCursor(data.nextCursor!)}>下一页</button>}{cursor && <button className={styles.pageButton} onClick={() => setCursor("")}>返回第一页</button>}
  </section>;
 }

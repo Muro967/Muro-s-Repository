@@ -35,7 +35,7 @@ export function WardrobeBrowser() {
   <div className={styles.heading}><h2>{title}</h2><small>按最近穿着排序</small></div>
   {(error || locationError) && <p role="alert">{error || locationError}<button onClick={() => setRevision((n) => n + 1)}>重试</button></p>}
   {loading && <p role="status">正在打开衣橱…</p>}
-  {data && <><p className={styles.resultCount}>共 {data.total} 件</p>{data.items.length ? <ItemGrid key={`${query}:${revision}`} items={data.items} onChanged={() => setRevision((n) => n + 1)} /> : <div className={styles.empty}><h3>这里还没有衣物</h3><p>{scope === "drafts" ? "录入未完成的衣物会保存在这里。" : "添加衣物，或试试其他筛选。"}</p></div>}{data.nextCursor && <button className={styles.pageButton} onClick={() => setCursor(data.nextCursor!)}>下一页</button>}{cursor && <button className={styles.pageButton} onClick={() => setCursor("")}>返回第一页</button>}</>}
+  {data && <><p className={styles.resultCount}>共 {data.total} 件</p>{data.items.length ? <ItemGrid key={`${query}:${revision}`} items={data.items} onChanged={() => { setCursor(""); setRevision((n) => n + 1); }} /> : <div className={styles.empty}><h3>{data.total === 0 ? "这里还没有衣物" : "这一页没有衣物"}</h3><p>{data.total > 0 ? "衣物可能已更新，请返回第一页查看。" : scope === "drafts" ? "录入未完成的衣物会保存在这里。" : "添加衣物，或试试其他筛选。"}</p></div>}{data.nextCursor && <button className={styles.pageButton} onClick={() => setCursor(data.nextCursor!)}>下一页</button>}{cursor && <button className={styles.pageButton} onClick={() => setCursor("")}>返回第一页</button>}</>}
   <Link className={styles.trashLink} href="/app/trash">回收站 ›</Link><Link className={styles.fab} href="/app/items/new" aria-label="添加衣物">＋</Link>
  </div>;
 }

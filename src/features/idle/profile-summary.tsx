@@ -14,8 +14,9 @@ async function loadSummary(signal: AbortSignal) {
   ]);
   return { inventory, wardrobes: wardrobes.wardrobes, idle };
 }
+const summaryTimeZone = (data: Awaited<ReturnType<typeof loadSummary>>) => data.idle.settings.timeZone;
 export function ProfileSummary() {
-  const { data, error, loading, reload } = useIdleResource(loadSummary);
+  const { data, error, loading, reload } = useIdleResource(loadSummary, summaryTimeZone);
   return <section aria-label="衣橱库存" className={styles.profileSummary}>
     {loading && <p role="status">正在读取衣橱库存…</p>}
     {error && <div role="alert" className={styles.error}>{error}<button className={styles.secondary} onClick={reload}>重试</button></div>}

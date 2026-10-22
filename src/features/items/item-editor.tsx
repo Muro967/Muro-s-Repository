@@ -45,7 +45,7 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [authError, setAuthError] = useState(false);
-  const [saved, setSaved] = useState<"draft" | "active" | null>(null);
+  const [saved, setSaved] = useState<"draft" | "active" | "changes" | null>(null);
   const [sheet, setSheet] = useState<"location" | "styles" | null>(null);
   const [location, setLocation] = useState<LocationValue>({ wardrobeId: "", zoneId: null });
   const [colorNames, setColorNames] = useState("");
@@ -141,7 +141,7 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
         const active = await itemEditorClient.activate(id, lifecycle.current?.signal);
         if (lifecycle.current?.signal.aborted) return;
         setItem(active); setSaved("active");
-      } else setSaved("draft");
+      } else setSaved(value.status === "active" ? "changes" : "draft");
     } catch (error) { if (!lifecycle.current?.signal.aborted) { setSaveError(`保存资料失败：${message(error)}`); setAuthError(error instanceof ItemClientError && error.code === "UNAUTHORIZED"); } }
     finally { if (!lifecycle.current?.signal.aborted) setBusy(false); }
   }
@@ -162,7 +162,7 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
       }} />}
       <div className={styles.preview}>{preview ? <Image src={preview} alt="衣物照片预览" width={800} height={800} unoptimized /> : <div className={styles.photoEmpty}><span aria-hidden="true">＋</span><p>留下它原本的样子</p><small>也可以先保存资料，稍后补照片</small></div>}</div>
       <PhotoPicker disabled={busy || !!unconfirmed || !editable} onSelect={(file) => { setSaved(null); upload.select(file); }} />
-      <div className={styles.status} role="status" tabIndex={-1} ref={wearStatus}>{wearRecorded ? "已记录手动穿着日期，已退出观察。" : unconfirmed ? "照片绑定结果未确认" : uploadBusy ? "正在上传" : saved ? saved === "active" ? "已保存到衣橱" : "已保存" : upload.state === "ready" ? "照片已上传" : ""}</div>
+      <div className={styles.status} role="status" tabIndex={-1} ref={wearStatus}>{wearRecorded ? "已记录手动穿着日期，已退出观察。" : unconfirmed ? "照片绑定结果未确认" : uploadBusy ? "正在上传" : saved ? saved === "active" ? "已保存到衣橱" : saved === "changes" ? "已保存修改" : "已保存" : upload.state === "ready" ? "照片已上传" : ""}</div>
       {wearRecorded && <Link className={styles.secondary} href="/app/idle">返回闲置衣物</Link>}
       {unconfirmed && <div role="alert" className={styles.error}><p>照片绑定结果未确认。为避免旧照片覆盖新照片，暂不能继续绑定或保存。请核对服务器照片后再重试。</p>{confirmationError && <p>{confirmationError}</p>}<button type="button" onClick={() => void checkAttachment()} disabled={checkingAttachment}>{checkingAttachment ? "正在核对…" : "核对服务器照片"}</button></div>}
       {upload.state === "retry" && !unconfirmed && <div role="alert" className={styles.error}><p>需要重试：{upload.error}</p><button type="button" onClick={upload.retry} disabled={busy}>重试照片</button></div>}
@@ -186,8 +186,8 @@ export function ItemEditor({ itemId, submitUpload }: { itemId?: string; submitUp
           <label className={`${styles.field} ${styles.notes}`}><span>备注</span><textarea maxLength={1000} value={form.notes ?? ""} onChange={(event) => change("notes", event.target.value || null)} placeholder="选填" rows={3} /></label>
         </fieldset></details>
         {saveError && <p role="alert" className={styles.error}>{saveError}</p>}
-        <p className={styles.hint}>草稿可以暂缺照片和位置。保存到衣橱需有名称、分类、照片和分区。尚未上传的照片仅在当前页面保留，关闭后请重新选择。</p>
-        <div className={styles.footer}>{itemId && saved && !busy && !uploadBusy && !unconfirmed ? <Link className={styles.secondary} href="/app/items/new">再添加一件</Link> : <button type="button" className={styles.secondary} disabled={!saved || busy || uploadBusy || !!unconfirmed} onClick={addAnother}>再添加一件</button>}<button className={styles.secondary} type="submit" disabled={busy || uploadBusy || !!unconfirmed || !editable}>{busy ? "正在保存…" : "保存草稿"}</button><button type="button" className={styles.primary} disabled={!canActivate || busy || uploadBusy || !!unconfirmed || !editable} onClick={() => void save(true)}>保存到衣橱</button></div>
+        <p className={styles.hint}>{item?.status === "active" ? "保存修改会更新这件衣物的资料。" : "草稿可以暂缺照片和位置。保存到衣橱需有名称、分类、照片和分区。"}尚未上传的照片仅在当前页面保留，关闭后请重新选择。</p>
+        <div className={styles.footer}>{itemId && saved && !busy && !uploadBusy && !unconfirmed ? <Link className={styles.secondary} href="/app/items/new">再添加一件</Link> : <button type="button" className={styles.secondary} disabled={!saved || busy || uploadBusy || !!unconfirmed} onClick={addAnother}>再添加一件</button>}<button className={styles.secondary} type="submit" disabled={busy || uploadBusy || !!unconfirmed || !editable}>{busy ? "正在保存…" : item?.status === "active" ? "保存修改" : "保存草稿"}</button>{item?.status !== "active" && <button type="button" className={styles.primary} disabled={!canActivate || busy || uploadBusy || !!unconfirmed || !editable} onClick={() => void save(true)}>保存到衣橱</button>}</div>
       </form>
     </>}
     {authError && <Link href="/login">重新登录</Link>}

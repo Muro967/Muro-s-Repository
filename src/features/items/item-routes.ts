@@ -59,7 +59,10 @@ export function createItemHandlers(deps: ItemRouteDependencies) {
       const today = deps.todayForUser ? await deps.todayForUser(userId, deps.now()) : deps.today();
       return jsonResponse({ item: lifecycleProjection(await deps.repository.restoreItem(userId, itemResourceId(id), today)) });
     }, true),
-    create: authenticated(true, async (userId, body) => jsonResponse({ item: await service.createDraft(userId, body) }, 201)),
+    create: authenticated(true, async (userId, body) => {
+      const today = deps.todayForUser ? await deps.todayForUser(userId, deps.now()) : deps.today();
+      return jsonResponse({ item: await createItemService({ ...deps, today: () => today }).createDraft(userId, body) }, 201);
+    }),
     read: authenticated(false, async (userId, _body, id) => jsonResponse({ item: await service.readItem(userId, id) })),
     update: authenticated(true, async (userId, body, id) => {
       // Preserve malformed-resource 404s before the timezone/settings lookup.
@@ -68,7 +71,13 @@ export function createItemHandlers(deps: ItemRouteDependencies) {
       const userService = createItemService({ ...deps, today: () => today });
       return jsonResponse({ item: await userService.updateItem(userId, id, body) });
     }),
-    activate: authenticated(true, async (userId, body, id) => jsonResponse({ item: await service.activateItem(userId, id, body) })),
+    activate: authenticated(true, async (userId, body, id) => {
+      // Empty-command validation preceded resource validation before local dates.
+      if (!z.strictObject({}).safeParse(body).success) throw new ItemError("INVALID_INPUT");
+      itemResourceId(id);
+      const today = deps.todayForUser ? await deps.todayForUser(userId, deps.now()) : deps.today();
+      return jsonResponse({ item: await createItemService({ ...deps, today: () => today }).activateItem(userId, id, body) });
+    }),
     attach: authenticated(true, async (userId, body, id) => {
       const parsed = z.strictObject({ uploadId: z.uuid() }).safeParse(body);
       if (!parsed.success) throw new ItemError("INVALID_INPUT");

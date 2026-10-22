@@ -13,7 +13,23 @@ const watching: EditorItem = {
   createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-10-01T00:00:00Z",
 };
 const active: EditorItem = { ...watching, name: "服务器上的新名称", status: "active", manualLastWornOn: "2026-10-20", watchStartedOn: null, watchDueOn: null };
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+test("the wear date maximum refreshes at local midnight while retaining the entered date", async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-20T15:59:30Z"));
+  let reads = 0;
+  vi.stubGlobal("fetch", async (path: string) => {
+    if (path === "/api/wardrobes") return idleJson({ wardrobes: [] });
+    if (path === "/api/idle") return idleJson({ ...idleDashboard, today: ++reads === 1 ? "2026-10-20" : "2026-10-21" });
+    return idleJson({ item: watching });
+  });
+  render(<ItemEditor itemId={id} />); await act(async () => {});
+  const date = screen.getByLabelText("手动穿着日期");
+  fireEvent.change(date, { target: { value: "2026-10-20" } });
+  expect(date).toHaveAttribute("max", "2026-10-20");
+  await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+  expect(date).toHaveAttribute("max", "2026-10-21");
+  expect(date).toHaveValue("2026-10-20");
+});
 function setup(save: (input: unknown, options: RequestInit) => Promise<Response>, item = watching) {
   vi.stubGlobal("fetch", async (path: string, options: RequestInit) => {
     if (path === "/api/wardrobes") return idleJson({ wardrobes: [] });
