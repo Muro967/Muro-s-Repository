@@ -4,6 +4,98 @@ import { StrictMode } from "react";
 
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
+test.each([
+  ["Asia/Shanghai", "2026-10-20T15:59:59.500Z", "2026-10-20", "2026-10-21"],
+  ["America/Los_Angeles", "2026-10-20T06:59:59.500Z", "2026-10-19", "2026-10-20"],
+])("a response crossing midnight in %s performs one follow-up before stabilizing", async (timeZone, instant, oldDay, newDay) => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date(instant));
+  const requests: ((value: { today: string; timeZone: string }) => void)[] = [];
+  const load = () => new Promise<{ today: string; timeZone: string }>((resolve) => requests.push(resolve));
+  const getTimeZone = (value: { timeZone: string }) => value.timeZone;
+  const view = renderHook(() => useIdleResource(load, getTimeZone));
+  await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+  await act(async () => { requests[0]({ today: oldDay, timeZone }); });
+  expect(requests).toHaveLength(2);
+  await act(async () => { requests[1]({ today: newDay, timeZone }); });
+  expect(view.result.current.data?.today).toBe(newDay);
+  await act(async () => { await vi.advanceTimersByTimeAsync(180_000); });
+  expect(requests).toHaveLength(2);
+  view.unmount(); expect(vi.getTimerCount()).toBe(0);
+});
+
+test("in-flight focus and visibility triggers coalesce into one throttled follow-up", async () => {
+  vi.useFakeTimers();
+  const requests: ((value: string) => void)[] = [];
+  const load = () => new Promise<string>((resolve) => requests.push(resolve));
+  const view = renderHook(() => useIdleResource(load));
+  await act(async () => { requests[0]("原资料"); });
+  act(() => { window.dispatchEvent(new Event("focus")); });
+  expect(requests).toHaveLength(2);
+  await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+  act(() => { window.dispatchEvent(new Event("focus")); document.dispatchEvent(new Event("visibilitychange")); window.dispatchEvent(new Event("focus")); });
+  await act(async () => { requests[1]("中间资料"); });
+  expect(requests).toHaveLength(2);
+  await act(async () => { await vi.advanceTimersByTimeAsync(900); });
+  expect(requests).toHaveLength(3);
+  await act(async () => { requests[2]("最终资料"); });
+  expect(view.result.current.data).toBe("最终资料");
+  await act(async () => { await vi.advanceTimersByTimeAsync(180_000); });
+  expect(requests).toHaveLength(3);
+});
+
+test("in-flight date ticks and visibility events share one follow-up request", async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-20T15:59:30Z"));
+  const requests: ((value: { today: string; timeZone: string }) => void)[] = [];
+  const load = () => new Promise<{ today: string; timeZone: string }>((resolve) => requests.push(resolve));
+  const getTimeZone = (value: { timeZone: string }) => value.timeZone;
+  const view = renderHook(() => useIdleResource(load, getTimeZone));
+  await act(async () => { requests[0]({ today: "2026-10-20", timeZone: "Asia/Shanghai" }); });
+  act(() => { window.dispatchEvent(new Event("focus")); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(120_000); });
+  act(() => { window.dispatchEvent(new Event("focus")); document.dispatchEvent(new Event("visibilitychange")); });
+  expect(requests).toHaveLength(2);
+  await act(async () => { requests[1]({ today: "2026-10-20", timeZone: "Asia/Shanghai" }); });
+  expect(requests).toHaveLength(3);
+  await act(async () => { requests[2]({ today: "2026-10-21", timeZone: "Asia/Shanghai" }); });
+  expect(view.result.current.data?.today).toBe("2026-10-21");
+  await act(async () => { await vi.advanceTimersByTimeAsync(180_000); });
+  expect(requests).toHaveLength(3);
+});
+
+test("a date transition inside the throttle window waits for admission instead of being consumed", async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-20T15:59:00.500Z"));
+  let reads = 0;
+  const load = async () => ({ today: ++reads < 3 ? "2026-10-20" : "2026-10-21", timeZone: "Asia/Shanghai" });
+  const getTimeZone = (value: { timeZone: string }) => value.timeZone;
+  const view = renderHook(() => useIdleResource(load, getTimeZone));
+  await act(async () => {});
+  await act(async () => { await vi.advanceTimersByTimeAsync(59_400); });
+  await act(async () => { window.dispatchEvent(new Event("focus")); });
+  expect(reads).toBe(2);
+  await act(async () => { await vi.advanceTimersByTimeAsync(600); });
+  expect(reads).toBe(2);
+  await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+  expect(reads).toBe(3);
+  expect(view.result.current.data?.today).toBe("2026-10-21");
+  await act(async () => { await vi.advanceTimersByTimeAsync(180_000); });
+  expect(reads).toBe(3);
+});
+
+test("unmount clears a queued throttle timeout before it can fetch", async () => {
+  vi.useFakeTimers();
+  const requests: ((value: string) => void)[] = [];
+  const load = () => new Promise<string>((resolve) => requests.push(resolve));
+  const view = renderHook(() => useIdleResource(load));
+  await act(async () => { requests[0]("原资料"); });
+  act(() => { window.dispatchEvent(new Event("focus")); });
+  act(() => { document.dispatchEvent(new Event("visibilitychange")); });
+  await act(async () => { requests[1]("刷新资料"); });
+  expect(vi.getTimerCount()).toBe(1);
+  view.unmount(); expect(vi.getTimerCount()).toBe(0);
+  await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+  expect(requests).toHaveLength(2);
+});
+
 test("visibility and focus refresh a visible resource once while a request is pending", async () => {
   let visible = "visible";
   vi.spyOn(document, "visibilityState", "get").mockImplementation(() => visible as DocumentVisibilityState);
