@@ -12,13 +12,22 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh: vi.fn(
 
 test.each([
   [OutfitsPage, "还没有可搭配的衣物", "搭配只会使用你衣橱里的衣物", "搭配"],
-  [InspirationPage, "还没有灵感图", "收集喜欢的穿搭，从这里慢慢认识自己的风格", "灵感"],
 ])("shows honest empty state for %s", (Page, title, description, tab) => {
   render(<Page />);
   expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
   expect(screen.getByText(description)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: tab })).toHaveAttribute("aria-current", "page");
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
+});
+test("loads the real inspiration empty state with honest add controls", async () => {
+  vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ inspirations: [] })));
+  try {
+    render(<InspirationPage />);
+    expect(await screen.findByRole("heading", { name: "还没有灵感图" })).toBeVisible();
+    expect(screen.getByText("收集喜欢的穿搭，从第一张图开始认识自己的风格。")).toBeVisible();
+    expect(screen.getByRole("link", { name: "灵感" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "相册" })).toHaveAttribute("href", "/app/inspiration/new?source=album");
+  } finally { vi.unstubAllGlobals(); }
 });
 test("loads the real wardrobe empty state while keeping its active primary tab", async () => {
   vi.stubGlobal("fetch", async (url: string) => json(url === "/api/wardrobes" ? { wardrobes: [] } : { ...browserResponse, items: [], total: 0 }));

@@ -1,4 +1,4 @@
-import { uploadOriginal, type UploadSession } from "@/features/items/item-upload-client";
+import { uploadOriginal, uploadPrivateImage, type UploadSession } from "@/features/items/item-upload-client";
 
 const id = "b3702bc6-e5de-45b6-92b6-1e9f8e23b130";
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });
@@ -74,4 +74,21 @@ test("retries a failed PUT on the same target and verifies a write-once conflict
 test.each([json({ uploadId: id, status: "pending" }), json({ uploadId: "bad", status: "completed" }), json({ error: { code: "UNAUTHORIZED" } }, 401)])("rejects an unconfirmed completion response", async (completion) => {
   vi.stubGlobal("fetch", async (path: string) => path === "/api/uploads" ? json({ uploadId: id, method: "PUT", url: "/local", headers: {} }) : path === "/local" ? new Response(null) : completion);
   await expect(uploadOriginal(new File(["a"], "a.jpg", { type: "image/jpeg" }))).rejects.toThrow();
+});
+
+test("uploads inspiration images through the shared resumable flow", async () => {
+  const bodies: unknown[] = [];
+  vi.stubGlobal("fetch", async (path: string, init: RequestInit) => {
+    if (path === "/api/uploads") {
+      bodies.push(JSON.parse(String(init.body)));
+      return json({ uploadId: id, method: "PUT", url: "/local", headers: {} });
+    }
+    if (path === "/local") return new Response(null);
+    return json({ uploadId: id, status: "completed" });
+  });
+  await expect(uploadPrivateImage(
+    new File(["a"], "look.jpg", { type: "image/jpeg" }),
+    "inspiration",
+  )).resolves.toEqual({ uploadId: id });
+  expect(bodies).toEqual([{ kind: "inspiration", contentType: "image/jpeg", sizeBytes: 1 }]);
 });

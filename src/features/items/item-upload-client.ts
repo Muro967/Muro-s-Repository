@@ -22,11 +22,15 @@ export async function itemRequest<T>(path: string, method: string, schema: z.Zod
 }
 
 /** The caller keeps the session for this File, so a retry resumes the same upload. */
-export async function uploadOriginal(file: File, callbacks: UploadCallbacks = {}): Promise<{ uploadId: string }> {
+export async function uploadPrivateImage(
+  file: File,
+  kind: "wardrobe-original" | "inspiration",
+  callbacks: UploadCallbacks = {},
+): Promise<{ uploadId: string }> {
   const { signal, onSession } = callbacks;
   let session = callbacks.session;
   if (!session) {
-    const target = await itemRequest("/api/uploads", "POST", targetSchema, { kind: "wardrobe-original", contentType: file.type, sizeBytes: file.size }, signal);
+    const target = await itemRequest("/api/uploads", "POST", targetSchema, { kind, contentType: file.type, sizeBytes: file.size }, signal);
     session = { target, stage: "put" }; onSession?.(session);
   }
   const { target } = session;
@@ -48,4 +52,8 @@ export async function uploadOriginal(file: File, callbacks: UploadCallbacks = {}
     onSession?.({ target, stage: "done" });
   }
   return { uploadId: target.uploadId };
+}
+
+export function uploadOriginal(file: File, callbacks: UploadCallbacks = {}) {
+  return uploadPrivateImage(file, "wardrobe-original", callbacks);
 }
