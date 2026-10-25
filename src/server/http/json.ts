@@ -20,6 +20,7 @@ export type ApiErrorCode =
   | "ITEM_NOT_EDITABLE"
   | "INVALID_IMAGE"
   | "ASSET_CONFLICT"
+  | "VERSION_CONFLICT"
   | "RESTORE_EXPIRED"
   | "INTERNAL_ERROR";
 

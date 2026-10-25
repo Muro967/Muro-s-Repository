@@ -23,6 +23,7 @@ async function lintClientImport(filePath: string, importPath: string) {
 
 test.each([
   ["src/components/runtime-alias.fixture.tsx", "@/server/runtime/db"],
+  ["src/features/inspiration/client-runtime.fixture.ts", "@/server/runtime/env"],
   ["src/app/runtime-relative.fixture.tsx", "../server/runtime/db"],
   [
     "src/components/nested/runtime-relative.fixture.tsx",
