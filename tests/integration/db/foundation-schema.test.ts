@@ -29,10 +29,16 @@ test("creates the complete current schema in Postgres", async () => {
 
     expect(result.rows.map(({ table_name }) => table_name)).toEqual([
       "disposal_records",
+      "inspiration_recreation_items",
+      "inspiration_recreations",
+      "inspirations",
       "invite_codes",
       "item_assets",
       "items",
+      "processing_jobs",
       "sessions",
+      "style_profiles",
+      "style_rules",
       "uploads",
       "user_settings",
       "users",
