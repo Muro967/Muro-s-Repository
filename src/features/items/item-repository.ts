@@ -1,5 +1,5 @@
 import type { AccessoryId, CategoryId, ItemStatus, SeasonId, StyleId } from "./item-types";
-import type { UploadContentType } from "../storage/storage-provider";
+import type { CompletedImageUpload, VerifiedImage } from "../storage/verified-image";
 
 export type EditableItemPatch = Partial<{
   name: string; categoryId: CategoryId | null; accessoryId: AccessoryId | null;
@@ -14,8 +14,8 @@ export type ItemDetail = Required<EditableItemPatch> & {
   watchDueOn: string | null; deletedAt: Date | null; createdAt: Date; updatedAt: Date;
   original: { id: string; uploadId: string } | null;
 };
-export type OriginalUpload = { id: string; objectKey: string; contentType: UploadContentType; sizeBytes: number };
-export type VerifiedImage = OriginalUpload & { width: number; height: number };
+export type OriginalUpload = CompletedImageUpload;
+export type { VerifiedImage };
 export class ItemError extends Error {
   constructor(readonly code: "NOT_FOUND" | "INVALID_INPUT" | "ITEM_INCOMPLETE" | "ITEM_NOT_EDITABLE" | "INVALID_IMAGE" | "ASSET_CONFLICT" | "RESTORE_EXPIRED") {
     super(code); this.name = "ItemError";
