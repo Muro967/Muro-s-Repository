@@ -17,8 +17,11 @@ import {
 
 import { accessorySubcategories, itemCategories, itemStyles, seasons } from "../../features/items/item-catalog";
 import { itemStatuses, type AccessoryId, type CategoryId, type ItemStatus, type SeasonId, type StyleId } from "../../features/items/item-types";
+import { inspirationAnalysisSources, inspirationAnalysisStatuses, inspirationFields } from "../../features/inspiration/inspiration-types";
 import type { UploadKind } from "../../features/storage/storage-provider";
 import { zoneKinds, type ZoneKind } from "../../features/wardrobe/wardrobe-types";
+
+export { inspirationAnalysisSources, inspirationAnalysisStatuses, inspirationFields } from "../../features/inspiration/inspiration-types";
 
 // Only compile-time catalog values are rendered as literals in DDL constraints.
 function enumValues(column: SQLWrapper, values: readonly string[]) {
@@ -240,23 +243,11 @@ export const disposalRecords = pgTable("disposal_records", {
   check("disposal_records_amount_check", sql`${table.saleAmountMinor} >= 0`),
 ]);
 
-export const inspirationAnalysisStatuses = ["manual", "queued", "running", "ready", "failed"] as const;
-export const inspirationAnalysisSources = ["openai", "qwen"] as const;
 export const styleProfileSources = ["rules", "openai", "qwen"] as const;
 export const styleRuleTypes = ["color", "style", "fit", "material", "formality", "text"] as const;
 export const recreationModes = ["rules", "openai", "qwen"] as const;
 export const processingJobStatuses = ["queued", "running", "succeeded", "failed"] as const;
 export const processingJobTypes = ["inspiration-analysis"] as const;
-export const inspirationFields = [
-  "name",
-  "styleTags",
-  "colorNames",
-  "silhouettes",
-  "keyItems",
-  "combinations",
-  "formality",
-] as const;
-
 export const inspirations = pgTable("inspirations", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
