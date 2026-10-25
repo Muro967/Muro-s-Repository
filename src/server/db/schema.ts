@@ -18,6 +18,7 @@ import {
 import { accessorySubcategories, itemCategories, itemStyles, seasons } from "../../features/items/item-catalog";
 import { itemStatuses, type AccessoryId, type CategoryId, type ItemStatus, type SeasonId, type StyleId } from "../../features/items/item-types";
 import { inspirationAnalysisSources, inspirationAnalysisStatuses, inspirationFields } from "../../features/inspiration/inspiration-types";
+import { styleRuleTypes } from "../../features/style/style-types";
 import type { UploadKind } from "../../features/storage/storage-provider";
 import { zoneKinds, type ZoneKind } from "../../features/wardrobe/wardrobe-types";
 
@@ -244,7 +245,6 @@ export const disposalRecords = pgTable("disposal_records", {
 ]);
 
 export const styleProfileSources = ["rules", "openai", "qwen"] as const;
-export const styleRuleTypes = ["color", "style", "fit", "material", "formality", "text"] as const;
 export const recreationModes = ["rules", "openai", "qwen"] as const;
 export const processingJobStatuses = ["queued", "running", "succeeded", "failed"] as const;
 export const processingJobTypes = ["inspiration-analysis"] as const;

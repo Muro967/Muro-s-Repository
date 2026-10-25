@@ -1,5 +1,4 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 
 import { InspirationPhotoPicker } from "@/features/inspiration/inspiration-photo-picker";
 
@@ -25,15 +24,10 @@ test("rejects HEIC and files above 15 MB while accepting a supported album image
   expect(select).toHaveBeenCalledWith(image);
 });
 
-test("reads an image from the clipboard button", async () => {
+test("reads an image only from a paste event scoped to the picker", () => {
   const image = new File(["a"], "pasted.png", { type: "image/png" });
-  const getType = vi.fn(async () => image);
-  Object.defineProperty(navigator, "clipboard", {
-    configurable: true,
-    value: { read: vi.fn(async () => [{ types: ["image/png"], getType }]) },
-  });
   const select = vi.fn();
   render(<InspirationPhotoPicker onSelect={select} />);
-  await userEvent.click(screen.getByRole("button", { name: "粘贴截图" }));
+  fireEvent.paste(screen.getByLabelText("粘贴区域"), { clipboardData: { files: [image] } });
   expect(select).toHaveBeenCalledWith(image);
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type ChangeEvent } from "react";
+import { useId, useRef, useState, type ChangeEvent, type ClipboardEvent } from "react";
 
 import styles from "./inspiration.module.css";
 
@@ -26,6 +26,7 @@ export function InspirationPhotoPicker({
   const id = useId();
   const camera = useRef<HTMLInputElement>(null);
   const album = useRef<HTMLInputElement>(null);
+  const pasteTarget = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   function accept(file: File | undefined) {
@@ -45,28 +46,18 @@ export function InspirationPhotoPicker({
     accept(file);
   }
 
-  async function paste() {
-    setError(null);
-    try {
-      if (!navigator.clipboard?.read) throw new Error("unsupported");
-      const entries = await navigator.clipboard.read();
-      for (const entry of entries) {
-        const type = entry.types.find((candidate) => supported.has(candidate));
-        if (!type) continue;
-        const blob = await entry.getType(type);
-        accept(blob instanceof File
-          ? blob
-          : new File([blob], "clipboard-image", { type }));
-        return;
-      }
+  function paste(event: ClipboardEvent<HTMLDivElement>) {
+    const file = [...event.clipboardData.files].find((candidate) => supported.has(candidate.type));
+    if (file) {
+      event.preventDefault();
+      accept(file);
+    } else {
       setError("剪贴板里没有可用的图片，请先复制一张截图。");
-    } catch {
-      setError("无法读取剪贴板。请允许访问，或改用相册选择。");
     }
   }
 
   return (
-    <div className={styles.photoPicker}>
+    <div className={styles.photoPicker} ref={pasteTarget} tabIndex={-1} aria-label="粘贴区域" onPaste={paste}>
       <input
         hidden
         id={`${id}-camera`}
@@ -95,7 +86,7 @@ export function InspirationPhotoPicker({
         <button type="button" disabled={disabled} onClick={() => album.current?.click()}>
           <span aria-hidden="true">▧</span>相册
         </button>
-        <button type="button" disabled={disabled} onClick={() => void paste()}>
+        <button type="button" disabled={disabled} onClick={() => { pasteTarget.current?.focus(); setError("现在按粘贴，即可读取刚复制的截图。"); }}>
           <span aria-hidden="true">⌘</span>粘贴截图
         </button>
       </div>

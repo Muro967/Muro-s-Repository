@@ -24,7 +24,7 @@ export async function itemRequest<T>(path: string, method: string, schema: z.Zod
 /** The caller keeps the session for this File, so a retry resumes the same upload. */
 export async function uploadPrivateImage(
   file: File,
-  kind: "wardrobe-original" | "inspiration",
+  kind: "wardrobe-original" | "inspiration" | "wear-photo",
   callbacks: UploadCallbacks = {},
 ): Promise<{ uploadId: string }> {
   const { signal, onSession } = callbacks;
