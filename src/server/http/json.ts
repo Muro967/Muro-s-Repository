@@ -21,6 +21,7 @@ export type ApiErrorCode =
   | "INVALID_IMAGE"
   | "ASSET_CONFLICT"
   | "VERSION_CONFLICT"
+  | "CANDIDATES_CHANGED"
   | "RESTORE_EXPIRED"
   | "INTERNAL_ERROR";
 
