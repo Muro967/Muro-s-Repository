@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 const next = `"${process.execPath}" "${require.resolve("next/dist/bin/next")}"`;
 const origin = `${production ? "https" : "http"}://127.0.0.1:3109`;
 process.env.E2E_INVITES ??= JSON.stringify(Object.fromEntries(
-  ["auth", "mobile-320", "mobile-390", "mobile-480", "inventory", "intruder"].map((name) => [name, randomBytes(18).toString("base64url")]),
+  ["auth", "mobile-320", "mobile-390", "mobile-480", "inventory", "intruder", "inspiration"].map((name) => [name, randomBytes(18).toString("base64url")]),
 ));
 const environment = {
   E2E_RUN: "1", E2E_INVITES: process.env.E2E_INVITES,
@@ -25,7 +25,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   timeout: 120_000,
-  testMatch: ["**/auth-onboarding.spec.ts", "**/mobile-shell.spec.ts", "**/wardrobe-inventory.spec.ts", "**/idle-disposal.spec.ts", ...(production ? ["**/pwa.spec.ts"] : [])],
+  testMatch: ["**/auth-onboarding.spec.ts", "**/mobile-shell.spec.ts", "**/wardrobe-inventory.spec.ts", "**/idle-disposal.spec.ts", "**/inspiration-style-recreation.spec.ts", ...(production ? ["**/pwa.spec.ts"] : [])],
   reporter: "list",
   use: {
     baseURL: origin,
