@@ -71,6 +71,7 @@ test("loads and saves an existing record without requiring another image", async
   render(<InspirationEditor inspirationId={id} client={{ read, update }} />);
   await act(async () => {});
   expect(await screen.findByLabelText("名称")).toHaveValue("秋日通勤");
+  expect(screen.getByRole("link", { name: "用我的衣服复刻" })).toHaveAttribute("href", `/app/inspiration/${id}/recreate`);
   await userEvent.clear(screen.getByLabelText("名称"));
   await userEvent.type(screen.getByLabelText("名称"), "新的名称");
   await userEvent.click(screen.getByRole("button", { name: "保存修改" }));

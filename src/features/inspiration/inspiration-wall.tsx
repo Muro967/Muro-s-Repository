@@ -94,6 +94,8 @@ export function InspirationWall({
           <div className={styles.masonry} data-layout="masonry">
             {items.map((item, index) => {
               const ai = item.analysisStatus === "ready" && item.analysisSource !== null;
+              const aiStyles = ai && !item.confirmedFields.includes("styleTags");
+              const aiColors = ai && !item.confirmedFields.includes("colorNames");
               return (
                 <Link className={styles.inspirationCard} href={`/app/inspiration/${item.id}`} key={item.id}>
                   <div className={styles.cardImage} data-tall={index % 3 === 0}>
@@ -109,10 +111,10 @@ export function InspirationWall({
                     {item.name ? <strong>{item.name}</strong> : null}
                     <div>
                       {item.styleTags.slice(0, 3).map((tag) => (
-                        <span className={styles.tag} key={tag}>{ai ? <i>AI</i> : null}{tag}</span>
+                        <span className={styles.tag} key={tag}>{aiStyles ? <i>AI</i> : null}{tag}</span>
                       ))}
                       {item.styleTags.length === 0 && item.colorNames.slice(0, 2).map((color) => (
-                        <span className={styles.tag} key={color}>{ai ? <i>AI</i> : null}{color}</span>
+                        <span className={styles.tag} key={color}>{aiColors ? <i>AI</i> : null}{color}</span>
                       ))}
                     </div>
                   </div>

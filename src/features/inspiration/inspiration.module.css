@@ -339,6 +339,19 @@
   opacity: .5;
 }
 
+.recreate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: 10px;
+  border: 1px solid var(--sage-dark);
+  border-radius: var(--radius-pill);
+  color: var(--sage-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .error {
   display: flex;
   align-items: center;

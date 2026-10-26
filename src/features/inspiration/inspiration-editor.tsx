@@ -15,7 +15,7 @@ import {
   type InspirationClient,
 } from "./inspiration-client";
 import { InspirationPhotoPicker } from "./inspiration-photo-picker";
-import type { EditableInspiration, InspirationDetail } from "./inspiration-types";
+import type { EditableInspiration, InspirationDetail, InspirationField } from "./inspiration-types";
 import styles from "./inspiration.module.css";
 
 type SubmitUpload = (
@@ -37,6 +37,14 @@ const empty = (): EditableInspiration => ({
   notes: null,
   confirmedFields: [],
 });
+
+const confirmableFields = new Set<keyof EditableInspiration>([
+  "name", "styleTags", "colorNames", "silhouettes", "keyItems", "combinations", "formality",
+]);
+
+function isConfirmableField(field: keyof EditableInspiration): field is InspirationField {
+  return confirmableFields.has(field);
+}
 
 function editableFrom(value: InspirationDetail): EditableInspiration {
   return {
@@ -127,7 +135,13 @@ export function InspirationEditor({
     field: K,
     value: EditableInspiration[K],
   ) {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(isConfirmableField(field) ? {
+        confirmedFields: [...new Set([...current.confirmedFields, field])],
+      } : {}),
+    }));
     setSaved(false);
     setError(null);
   }
@@ -269,6 +283,7 @@ export function InspirationEditor({
         >
           {busy ? "正在保存…" : inspirationId ? "保存修改" : "保存灵感"}
         </button>
+        {record ? <Link className={styles.recreate} href={`/app/inspiration/${record.id}/recreate`}>用我的衣服复刻</Link> : null}
       </form>
     </div>
   );
