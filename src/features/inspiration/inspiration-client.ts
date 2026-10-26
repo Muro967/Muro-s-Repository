@@ -98,6 +98,8 @@ export type InspirationClient = {
     signal?: AbortSignal,
   ): Promise<InspirationDetail>;
   remove(id: string, expectedVersion: number, signal?: AbortSignal): Promise<void>;
+  aiStatus(signal?: AbortSignal): Promise<{ available: boolean; label: string }>;
+  analyze(id: string, signal?: AbortSignal): Promise<{ jobId: string; status: "queued" }>;
 };
 
 export const inspirationClient: InspirationClient = {
@@ -143,6 +145,24 @@ export const inspirationClient: InspirationClient = {
       "DELETE",
       z.strictObject({ ok: z.literal(true) }),
       { expectedVersion },
+      signal,
+    );
+  },
+  async aiStatus(signal) {
+    return request(
+      "/api/ai/status",
+      "GET",
+      z.strictObject({ available: z.boolean(), label: z.string() }),
+      undefined,
+      signal,
+    );
+  },
+  async analyze(id, signal) {
+    return request(
+      `/api/inspirations/${encodeURIComponent(id)}/analysis`,
+      "POST",
+      z.strictObject({ jobId: z.uuid(), status: z.literal("queued") }),
+      {},
       signal,
     );
   },

@@ -14,7 +14,7 @@ export type RecreationInputs = {
 };
 
 export class RecreationError extends Error {
-  constructor(readonly code: "NOT_FOUND" | "INVALID_INPUT" | "CANDIDATES_CHANGED") {
+  constructor(readonly code: "NOT_FOUND" | "INVALID_INPUT" | "CANDIDATES_CHANGED" | "AI_UNAVAILABLE" | "AI_INVALID_RESPONSE") {
     super(code);
     this.name = "RecreationError";
   }

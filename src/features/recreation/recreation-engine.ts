@@ -68,9 +68,15 @@ function bestFor(categoryId: CategoryId, candidates: RecreationCandidate[], inpu
       left.entry.id.localeCompare(right.entry.id))[0];
 }
 
-export function buildRuleRecreation(input: RuleRecreationInput): RecreationDraft {
-  const candidates = input.candidates.filter((entry) =>
+export function eligibleRecreationCandidates(input: RuleRecreationInput) {
+  return input.candidates.filter((entry) =>
     entry.userId === input.userId && entry.status === "active" && entry.deletedAt === null && !excluded(entry, input));
+}
+
+export function buildRuleRecreation(input: RuleRecreationInput): RecreationDraft {
+  const ownedActive = input.candidates.filter((entry) =>
+    entry.userId === input.userId && entry.status === "active" && entry.deletedAt === null);
+  const candidates = eligibleRecreationCandidates(input);
   const slots: Array<{ categoryId: CategoryId; label: string; required: boolean }> = desiredDress(input)
     ? [{ categoryId: "dresses", label: "连衣裙", required: true }]
     : [{ categoryId: "tops", label: "上装", required: true }, { categoryId: "bottoms", label: "下装", required: true }];
@@ -105,7 +111,7 @@ export function buildRuleRecreation(input: RuleRecreationInput): RecreationDraft
       inspiration: input.inspiration,
       styleProfileInputVersion: input.styleProfile?.inputVersion ?? null,
       enabledRules: input.enabledRules.filter((rule) => rule.enabled).map(({ type, value }) => ({ type, value })),
-      candidateVersions: candidates.map(({ id, updatedAt }) => ({ itemId: id, updatedAt })),
+      candidateVersions: ownedActive.map(({ id, updatedAt }) => ({ itemId: id, updatedAt })),
     },
   };
 }

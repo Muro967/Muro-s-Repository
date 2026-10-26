@@ -24,7 +24,7 @@ type SubmitUpload = (
   callbacks?: UploadCallbacks,
 ) => Promise<{ uploadId: string }>;
 
-type EditorClient = Partial<Pick<InspirationClient, "read" | "create" | "update">>;
+type EditorClient = Partial<Pick<InspirationClient, "read" | "create" | "update" | "aiStatus" | "analyze">>;
 
 const empty = (): EditableInspiration => ({
   name: "",
@@ -93,12 +93,16 @@ export function InspirationEditor({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const [analysisBusy, setAnalysisBusy] = useState(false);
   const session = useRef<UploadSession | undefined>(undefined);
   const previewReference = useRef<string | null>(null);
+  const analysisController = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
       if (previewReference.current) URL.revokeObjectURL(previewReference.current);
+      analysisController.current?.abort();
     };
   }, []);
 
@@ -130,6 +134,38 @@ export function InspirationEditor({
     void Promise.resolve().then(() => load(controller.signal));
     return () => controller.abort();
   }, [load]);
+
+  useEffect(() => {
+    if (!inspirationId || !client.aiStatus) return;
+    const controller = new AbortController();
+    void client.aiStatus(controller.signal).then((status) => setAiAvailable(status.available)).catch(() => {});
+    return () => controller.abort();
+  }, [client, inspirationId]);
+
+  async function analyze() {
+    if (!record || !client.analyze || !client.read || analysisBusy) return;
+    setAnalysisBusy(true);
+    setError(null);
+    analysisController.current?.abort();
+    const controller = new AbortController();
+    analysisController.current = controller;
+    try {
+      await client.analyze(record.id, controller.signal);
+      for (const delay of [600, 1000, 1600, 2400, 3200]) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        if (controller.signal.aborted) return;
+        const updated = await client.read(record.id, controller.signal);
+        setRecord(updated);
+        setForm(editableFrom(updated));
+        setLists({
+          styleTags: updated.styleTags.join(" / "), colorNames: updated.colorNames.join(" / "), silhouettes: updated.silhouettes.join(" / "),
+          keyItems: updated.keyItems.join(" / "), combinations: updated.combinations.join(" / "),
+        });
+        if (updated.analysisStatus === "ready" || updated.analysisStatus === "failed") break;
+      }
+    } catch (caught) { if (!controller.signal.aborted) setError(message(caught)); }
+    finally { if (!controller.signal.aborted) setAnalysisBusy(false); }
+  }
 
   function change<K extends keyof EditableInspiration>(
     field: K,
@@ -222,6 +258,7 @@ export function InspirationEditor({
       ) : null}
 
       <form onSubmit={(event) => { event.preventDefault(); void save(); }}>
+        {record && aiAvailable ? <button className={styles.analysis} type="button" disabled={analysisBusy || busy} onClick={() => void analyze()}>{analysisBusy ? "AI 正在分析…" : record.analysisStatus === "ready" ? "重新 AI 分析" : "AI 分析灵感"}</button> : null}
         <fieldset className={styles.formCard} disabled={busy}>
           <legend className={styles.visuallyHidden}>灵感资料</legend>
           <label className={styles.field}>

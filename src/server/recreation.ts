@@ -6,6 +6,7 @@ import { DrizzleRecreationRepository } from "@/server/db/drizzle-recreation-repo
 import { getProductionAuthRouteDependencies } from "./auth";
 import { getDb } from "./db/client";
 import { apiError } from "./http/json";
+import { createAiProvider, readAiEnv } from "@/features/ai/ai-provider";
 
 type Context = { params: Promise<Record<string, string>> };
 
@@ -16,6 +17,7 @@ function handlers() {
     authRepository: auth.repository,
     now: auth.now,
     repository: new DrizzleRecreationRepository(getDb()),
+    provider: createAiProvider(readAiEnv()),
   });
 }
 

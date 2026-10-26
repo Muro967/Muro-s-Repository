@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { AiProvider } from "../ai/ai-types";
 
 import { aggregateStyleProfile } from "./style-aggregation";
 import {
@@ -48,7 +49,7 @@ function parsed<T>(schema: z.ZodType<T>, input: unknown): T {
   return result.data;
 }
 
-export function createStyleService({ repository }: { repository: StyleRepository }) {
+export function createStyleService({ repository, provider = null }: { repository: StyleRepository; provider?: AiProvider | null }) {
   return {
     async read(userId: string) {
       const [inspirations, current, rules] = await Promise.all([
@@ -64,8 +65,8 @@ export function createStyleService({ repository }: { repository: StyleRepository
         rules,
       };
     },
-    async regenerate(userId: string) {
-      const inspirations = await repository.readInspirations(userId);
+    async regenerate(userId: string, mode: "rules" | "ai" = "rules") {
+      const [inspirations, rules] = await Promise.all([repository.readInspirations(userId), repository.listRules(userId)]);
       const aggregation = aggregateStyleProfile(inspirations);
       if (aggregation.status.kind === "insufficient") {
         return {
@@ -74,9 +75,14 @@ export function createStyleService({ repository }: { repository: StyleRepository
           current: await repository.readProfile(userId),
         };
       }
+      if (mode === "ai" && !provider) throw new StyleError("AI_UNAVAILABLE");
+      const profile = mode === "ai" ? await provider!.suggestStyleProfile({
+        inspirations,
+        enabledRules: rules.filter((rule) => rule.enabled).map(({ type, value, enabled }) => ({ type, value, enabled })),
+      }) : aggregation.status.profile;
       const current = await repository.saveSuggestion(userId, {
-        ...aggregation.status.profile,
-        source: "rules",
+        ...profile,
+        source: mode === "ai" ? provider!.kind : "rules",
         inputVersion: aggregation.status.inputVersion,
       });
       return { validCount: aggregation.validCount, remaining: 0, current };

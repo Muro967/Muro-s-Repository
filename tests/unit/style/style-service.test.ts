@@ -1,6 +1,7 @@
 import { createStyleService } from "@/features/style/style-service";
 import type { StyleProfile, StyleRepository } from "@/features/style/style-repository";
 import type { StyleInspiration, StyleRule } from "@/features/style/style-types";
+import type { AiProvider } from "@/features/ai/ai-types";
 
 const inspirations: StyleInspiration[] = Array.from({ length: 5 }, (_, index) => ({
   id: `10000000-0000-4000-8000-00000000000${index + 1}`,
@@ -81,4 +82,14 @@ test("validates manual profile and structured/free-text rule lengths", async () 
   })).resolves.toMatchObject({ manuallyEdited: true });
   await expect(service.createRule("user", { type: "color", value: "x".repeat(81), enabled: true })).rejects.toMatchObject({ code: "INVALID_INPUT" });
   await expect(service.createRule("user", { type: "text", value: "x".repeat(241), enabled: true })).rejects.toMatchObject({ code: "INVALID_INPUT" });
+});
+
+test("uses an explicitly requested provider while preserving the same persistence guard", async () => {
+  const repository = new FakeRepository();
+  const suggestion = { preferredColors: ["灰绿"], preferredSilhouettes: ["直线"], commonCombinations: ["衬衫+长裤"], formalityTendency: "通勤", likedExamples: [] };
+  const provider: AiProvider = { kind: "openai", analyzeInspiration: vi.fn(), suggestStyleProfile: vi.fn(async () => suggestion), recreate: vi.fn() };
+  const result = await createStyleService({ repository, provider }).regenerate("user", "ai");
+  expect(provider.suggestStyleProfile).toHaveBeenCalledWith(expect.objectContaining({ inspirations, enabledRules: [] }));
+  expect(result.current).toMatchObject({ ...suggestion, source: "openai" });
+  await expect(createStyleService({ repository, provider: null }).regenerate("user", "ai")).rejects.toMatchObject({ code: "AI_UNAVAILABLE" });
 });

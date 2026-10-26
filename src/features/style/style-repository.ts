@@ -13,7 +13,7 @@ export type StyleProfile = StyleSuggestion & {
 };
 
 export class StyleError extends Error {
-  constructor(readonly code: "NOT_FOUND" | "INVALID_INPUT" | "VERSION_CONFLICT") {
+  constructor(readonly code: "NOT_FOUND" | "INVALID_INPUT" | "VERSION_CONFLICT" | "AI_UNAVAILABLE") {
     super(code);
     this.name = "StyleError";
   }

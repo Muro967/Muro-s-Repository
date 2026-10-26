@@ -6,6 +6,7 @@ import { getProductionAuthRouteDependencies } from "./auth";
 import { getDb } from "./db/client";
 import { DrizzleStyleRepository } from "./db/drizzle-style-repository";
 import { apiError } from "./http/json";
+import { createAiProvider, readAiEnv } from "@/features/ai/ai-provider";
 
 function dependencies() {
   const auth = getProductionAuthRouteDependencies();
@@ -14,6 +15,7 @@ function dependencies() {
     authRepository: auth.repository,
     now: auth.now,
     repository: new DrizzleStyleRepository(getDb()),
+    provider: createAiProvider(readAiEnv()),
   };
 }
 

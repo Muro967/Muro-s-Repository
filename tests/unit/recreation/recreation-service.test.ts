@@ -1,5 +1,6 @@
 import { createRecreationService } from "@/features/recreation/recreation-service";
 import { RecreationError, type RecreationRepository } from "@/features/recreation/recreation-repository";
+import type { AiProvider } from "@/features/ai/ai-types";
 
 const userId = "30000000-0000-4000-8000-000000000001";
 const inspirationId = "10000000-0000-4000-8000-000000000001";
@@ -33,4 +34,20 @@ test("fails closed after a second candidate race and hides unknown records", asy
   };
   await expect(createRecreationService({ repository }).create(userId, inspirationId)).rejects.toMatchObject({ code: "CANDIDATES_CHANGED" });
   await expect(createRecreationService({ repository }).read(userId, saved.id)).rejects.toEqual(new RecreationError("NOT_FOUND"));
+});
+
+test("accepts only provider tokens from the prefiltered candidate set", async () => {
+  const repository: RecreationRepository = {
+    readInputs: vi.fn(async () => input),
+    save: vi.fn(async (_user, _source, draft) => ({ ...saved, mode: draft.mode })),
+    find: vi.fn(async () => saved),
+  };
+  const provider: AiProvider = {
+    kind: "qwen", analyzeInspiration: vi.fn(), suggestStyleProfile: vi.fn(),
+    recreate: vi.fn(async () => ({ selections: [{ token: "c1", slot: "上装" }, { token: "c2", slot: "下装" }], similarities: ["色彩接近"], missing: ["鞋履"] })),
+  };
+  await expect(createRecreationService({ repository, provider }).create(userId, inspirationId, "ai")).resolves.toMatchObject({ mode: "qwen" });
+  expect(repository.save).toHaveBeenCalledWith(userId, inspirationId, expect.objectContaining({ mode: "qwen" }));
+  provider.recreate = vi.fn(async () => ({ selections: [{ token: "unknown", slot: "上装" }], similarities: [], missing: [] }));
+  await expect(createRecreationService({ repository, provider }).create(userId, inspirationId, "ai")).rejects.toMatchObject({ code: "AI_INVALID_RESPONSE" });
 });

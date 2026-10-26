@@ -352,6 +352,19 @@
   text-decoration: none;
 }
 
+.analysis {
+  width: 100%;
+  min-height: 46px;
+  margin: 14px 0 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--mist-light);
+  color: #566b76;
+  font: inherit;
+  font-weight: 700;
+}
+.analysis:disabled { opacity: .55; cursor: wait; }
+
 .error {
   display: flex;
   align-items: center;

@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { AuthRepository } from "@/features/auth/auth-repository";
+import type { AiProvider } from "@/features/ai/ai-types";
 import { readSession } from "@/features/auth/auth-service";
 import { requestSessionToken } from "@/features/auth/session-cookie";
 import { apiError, jsonResponse, readJsonBody } from "@/server/http/json";
@@ -14,6 +15,7 @@ export type StyleRouteDependencies = {
   authRepository: AuthRepository;
   now: () => Date;
   repository: StyleRepository;
+  provider?: AiProvider | null;
 };
 
 export function createStyleHandlers(dependencies: StyleRouteDependencies) {
@@ -44,6 +46,7 @@ export function createStyleHandlers(dependencies: StyleRouteDependencies) {
       return await action(user.id, body, id);
     } catch (error) {
       if (error instanceof StyleError) {
+        if (error.code === "AI_UNAVAILABLE") return apiError("AI_UNAVAILABLE", 503, "AI is not configured.");
         if (error.code === "NOT_FOUND") return apiError("NOT_FOUND", 404, "The style resource was not found.");
         if (error.code === "INVALID_INPUT") return apiError("INVALID_INPUT", 400, "The request does not meet the requirements.");
         return apiError("VERSION_CONFLICT", 409, "The style manual has changed.");
@@ -55,10 +58,13 @@ export function createStyleHandlers(dependencies: StyleRouteDependencies) {
   return {
     read: authenticated(false, async (userId) => jsonResponse({ style: await service.read(userId) })),
     regenerate: authenticated(true, async (userId, body) => {
-      if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).length > 0) {
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
         throw new StyleError("INVALID_INPUT");
       }
-      return jsonResponse({ style: await service.regenerate(userId) });
+      const keys = Object.keys(body);
+      const mode = (body as Record<string, unknown>).mode;
+      if (keys.some((key) => key !== "mode") || (mode !== undefined && mode !== "ai" && mode !== "rules")) throw new StyleError("INVALID_INPUT");
+      return jsonResponse({ style: await service.regenerate(userId, mode === "ai" ? "ai" : "rules") });
     }),
     updateProfile: authenticated(true, async (userId, body) => {
       if (body && typeof body === "object" && !Array.isArray(body) && "action" in body) {
