@@ -57,7 +57,7 @@ export function InspirationWall({
           ))}
         </div>
         {remaining > 0 ? (
-          <p>再添加 {remaining} 张，就能形成你的风格说明书</p>
+          <><p>再添加 {remaining} 张，就能形成你的风格说明书</p><Link href="/app/inspiration/style">查看门槛说明 <span aria-hidden="true">›</span></Link></>
         ) : (
           <Link href="/app/inspiration/style">查看并编辑风格说明书 <span aria-hidden="true">›</span></Link>
         )}
