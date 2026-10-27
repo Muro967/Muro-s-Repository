@@ -15,6 +15,13 @@
       "when": 1792400442781,
       "tag": "0001_inventory_idle",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792942347082,
+      "tag": "0002_inspiration_style",
+      "breakpoints": true
     }
   ]
 }

@@ -38,7 +38,7 @@ export async function createZone(page: Page, name: string, kind: string) {
   await page.getByRole("button", { name: "保存分区", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 }
-export async function addGarment(page: Page, input: { name: string; wardrobe: string; zone: string; format: "jpeg" | "png" | "webp" }) {
+export async function addGarment(page: Page, input: { name: string; wardrobe: string; zone: string; format: "jpeg" | "png" | "webp"; category?: string }) {
   // The editor's effect fetch proves hydration before a hidden file input changes.
   const locations = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/wardrobes");
   await page.goto("/app/items/new");
@@ -56,7 +56,7 @@ export async function addGarment(page: Page, input: { name: string; wardrobe: st
   const { uploadId } = await target.json();
   await expect(page.getByText("照片已上传", { exact: true })).toBeVisible();
   await page.getByLabel("名称", { exact: true }).fill(input.name);
-  await page.getByRole("combobox", { name: "分类", exact: true }).selectOption("outerwear");
+  await page.getByRole("combobox", { name: "分类", exact: true }).selectOption(input.category ?? "outerwear");
   await page.getByRole("button", { name: "选择衣柜与分区" }).click();
   const dialog = page.getByRole("dialog", { name: "放在哪里", exact: true });
   await dialog.getByRole("button", { name: input.wardrobe, exact: true }).click();

@@ -17,8 +17,12 @@ import {
 
 import { accessorySubcategories, itemCategories, itemStyles, seasons } from "../../features/items/item-catalog";
 import { itemStatuses, type AccessoryId, type CategoryId, type ItemStatus, type SeasonId, type StyleId } from "../../features/items/item-types";
+import { inspirationAnalysisSources, inspirationAnalysisStatuses, inspirationFields } from "../../features/inspiration/inspiration-types";
+import { styleRuleTypes } from "../../features/style/style-types";
 import type { UploadKind } from "../../features/storage/storage-provider";
 import { zoneKinds, type ZoneKind } from "../../features/wardrobe/wardrobe-types";
+
+export { inspirationAnalysisSources, inspirationAnalysisStatuses, inspirationFields } from "../../features/inspiration/inspiration-types";
 
 // Only compile-time catalog values are rendered as literals in DDL constraints.
 function enumValues(column: SQLWrapper, values: readonly string[]) {
@@ -240,6 +244,165 @@ export const disposalRecords = pgTable("disposal_records", {
   check("disposal_records_amount_check", sql`${table.saleAmountMinor} >= 0`),
 ]);
 
+export const styleProfileSources = ["rules", "openai", "qwen"] as const;
+export const recreationModes = ["rules", "openai", "qwen"] as const;
+export const processingJobStatuses = ["queued", "running", "succeeded", "failed"] as const;
+export const processingJobTypes = ["inspiration-analysis"] as const;
+export const inspirations = pgTable("inspirations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  uploadId: uuid("upload_id").notNull(),
+  name: text("name").notNull().default(""),
+  styleTags: jsonb("style_tags").$type<string[]>().notNull().default([]),
+  colorNames: jsonb("color_names").$type<string[]>().notNull().default([]),
+  silhouettes: jsonb("silhouettes").$type<string[]>().notNull().default([]),
+  keyItems: jsonb("key_items").$type<string[]>().notNull().default([]),
+  combinations: jsonb("combinations").$type<string[]>().notNull().default([]),
+  formality: text("formality"),
+  notes: text("notes"),
+  confirmedFields: jsonb("confirmed_fields").$type<(typeof inspirationFields)[number][]>().notNull().default([]),
+  analysisStatus: text("analysis_status").$type<(typeof inspirationAnalysisStatuses)[number]>().notNull().default("manual"),
+  analysisSource: text("analysis_source").$type<(typeof inspirationAnalysisSources)[number]>(),
+  analysisErrorCode: text("analysis_error_code"),
+  analysisAttempts: integer("analysis_attempts").notNull().default(0),
+  version: integer("version").notNull().default(1),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("inspirations_user_id_id_unique").on(table.userId, table.id),
+  uniqueIndex("inspirations_upload_id_unique").on(table.uploadId),
+  index("inspirations_user_deleted_created_index").on(table.userId, table.deletedAt, table.createdAt),
+  foreignKey({
+    name: "inspirations_tenant_upload_fk",
+    columns: [table.userId, table.uploadId],
+    foreignColumns: [uploads.userId, uploads.id],
+  }),
+  check("inspirations_style_tags_check", sql`jsonb_typeof(${table.styleTags}) = 'array'`),
+  check("inspirations_color_names_check", sql`jsonb_typeof(${table.colorNames}) = 'array'`),
+  check("inspirations_silhouettes_check", sql`jsonb_typeof(${table.silhouettes}) = 'array'`),
+  check("inspirations_key_items_check", sql`jsonb_typeof(${table.keyItems}) = 'array'`),
+  check("inspirations_combinations_check", sql`jsonb_typeof(${table.combinations}) = 'array'`),
+  check("inspirations_confirmed_fields_check", jsonArrayValues(table.confirmedFields, inspirationFields)),
+  check("inspirations_analysis_status_check", enumValues(table.analysisStatus, inspirationAnalysisStatuses)),
+  check("inspirations_analysis_source_check", enumValues(table.analysisSource, inspirationAnalysisSources)),
+  check("inspirations_analysis_attempts_check", sql`${table.analysisAttempts} between 0 and 2`),
+  check("inspirations_version_check", sql`${table.version} >= 1`),
+]);
+
+export const styleProfiles = pgTable("style_profiles", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  preferredColors: jsonb("preferred_colors").$type<string[]>().notNull().default([]),
+  preferredSilhouettes: jsonb("preferred_silhouettes").$type<string[]>().notNull().default([]),
+  commonCombinations: jsonb("common_combinations").$type<string[]>().notNull().default([]),
+  formalityTendency: text("formality_tendency"),
+  likedExamples: jsonb("liked_examples").$type<string[]>().notNull().default([]),
+  source: text("source").$type<(typeof styleProfileSources)[number]>().notNull().default("rules"),
+  inputVersion: text("input_version").notNull(),
+  manuallyEdited: boolean("manually_edited").notNull().default(false),
+  pendingSuggestion: jsonb("pending_suggestion").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  check("style_profiles_preferred_colors_check", sql`jsonb_typeof(${table.preferredColors}) = 'array'`),
+  check("style_profiles_preferred_silhouettes_check", sql`jsonb_typeof(${table.preferredSilhouettes}) = 'array'`),
+  check("style_profiles_common_combinations_check", sql`jsonb_typeof(${table.commonCombinations}) = 'array'`),
+  check("style_profiles_liked_examples_check", sql`jsonb_typeof(${table.likedExamples}) = 'array'`),
+  check("style_profiles_pending_suggestion_check", sql`${table.pendingSuggestion} is null or jsonb_typeof(${table.pendingSuggestion}) = 'object'`),
+  check("style_profiles_source_check", enumValues(table.source, styleProfileSources)),
+]);
+
+export const styleRules = pgTable("style_rules", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").$type<(typeof styleRuleTypes)[number]>().notNull(),
+  value: text("value").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("style_rules_user_id_id_unique").on(table.userId, table.id),
+  index("style_rules_user_id_index").on(table.userId),
+  check("style_rules_type_check", enumValues(table.type, styleRuleTypes)),
+  check("style_rules_value_check", sql`${table.value} ~ '[^[:space:]]'`),
+]);
+
+export const inspirationRecreations = pgTable("inspiration_recreations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  inspirationId: uuid("inspiration_id").notNull(),
+  mode: text("mode").$type<(typeof recreationModes)[number]>().notNull().default("rules"),
+  similarities: jsonb("similarities").$type<string[]>().notNull().default([]),
+  missing: jsonb("missing").$type<string[]>().notNull().default([]),
+  inputSnapshot: jsonb("input_snapshot").$type<Record<string, unknown>>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("inspiration_recreations_user_id_id_unique").on(table.userId, table.id),
+  index("inspiration_recreations_user_inspiration_index").on(table.userId, table.inspirationId),
+  foreignKey({
+    name: "inspiration_recreations_tenant_inspiration_fk",
+    columns: [table.userId, table.inspirationId],
+    foreignColumns: [inspirations.userId, inspirations.id],
+  }).onDelete("cascade"),
+  check("inspiration_recreations_mode_check", enumValues(table.mode, recreationModes)),
+  check("inspiration_recreations_similarities_check", sql`jsonb_typeof(${table.similarities}) = 'array'`),
+  check("inspiration_recreations_missing_check", sql`jsonb_typeof(${table.missing}) = 'array'`),
+  check("inspiration_recreations_snapshot_check", sql`jsonb_typeof(${table.inputSnapshot}) = 'object'`),
+]);
+
+export const inspirationRecreationItems = pgTable("inspiration_recreation_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  recreationId: uuid("recreation_id").notNull(),
+  itemId: uuid("item_id").notNull(),
+  slot: text("slot").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  foreignKey({
+    name: "inspiration_recreation_items_tenant_recreation_fk",
+    columns: [table.userId, table.recreationId],
+    foreignColumns: [inspirationRecreations.userId, inspirationRecreations.id],
+  }).onDelete("cascade"),
+  foreignKey({
+    name: "inspiration_recreation_items_tenant_item_fk",
+    columns: [table.userId, table.itemId],
+    foreignColumns: [items.userId, items.id],
+  }),
+  uniqueIndex("inspiration_recreation_items_recreation_item_unique").on(table.recreationId, table.itemId),
+  uniqueIndex("inspiration_recreation_items_recreation_sort_unique").on(table.recreationId, table.sortOrder),
+  check("inspiration_recreation_items_slot_check", sql`${table.slot} ~ '[^[:space:]]'`),
+  check("inspiration_recreation_items_sort_order_check", sql`${table.sortOrder} >= 0`),
+]);
+
+export const processingJobs = pgTable("processing_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").$type<(typeof processingJobTypes)[number]>().notNull(),
+  targetInspirationId: uuid("target_inspiration_id").notNull(),
+  inputVersion: integer("input_version").notNull(),
+  status: text("status").$type<(typeof processingJobStatuses)[number]>().notNull().default("queued"),
+  attempts: integer("attempts").notNull().default(0),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
+  leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+  errorCode: text("error_code"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("processing_jobs_runnable_index").on(table.status, table.nextAttemptAt, table.leaseExpiresAt),
+  index("processing_jobs_user_target_index").on(table.userId, table.targetInspirationId),
+  foreignKey({
+    name: "processing_jobs_tenant_inspiration_fk",
+    columns: [table.userId, table.targetInspirationId],
+    foreignColumns: [inspirations.userId, inspirations.id],
+  }).onDelete("cascade"),
+  check("processing_jobs_type_check", enumValues(table.type, processingJobTypes)),
+  check("processing_jobs_status_check", enumValues(table.status, processingJobStatuses)),
+  check("processing_jobs_input_version_check", sql`${table.inputVersion} >= 1`),
+  check("processing_jobs_attempts_check", sql`${table.attempts} between 0 and 2`),
+]);
+
 export const schema = {
   users,
   inviteCodes,
@@ -251,4 +414,10 @@ export const schema = {
   items,
   itemAssets,
   disposalRecords,
+  inspirations,
+  styleProfiles,
+  styleRules,
+  inspirationRecreations,
+  inspirationRecreationItems,
+  processingJobs,
 };

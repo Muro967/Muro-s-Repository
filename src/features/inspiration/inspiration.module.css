@@ -1,0 +1,413 @@
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--clay);
+  font: 600 11px/1.3 var(--latin);
+  letter-spacing: .13em;
+}
+
+.progressCard {
+  position: relative;
+  margin: 22px 0 14px;
+  padding: 22px;
+  overflow: hidden;
+  border-radius: 26px;
+  background: var(--card);
+}
+
+.progressCard::after {
+  position: absolute;
+  right: -16px;
+  bottom: -26px;
+  width: 112px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--rose-light);
+  content: "";
+  opacity: .7;
+  transform: rotate(-12deg);
+}
+
+.progressCard h2,
+.wallSection h2,
+.empty h2,
+.editorHeading h1 {
+  margin: 0;
+  font: 600 20px/1.45 var(--serif);
+}
+
+.progressCard > p {
+  position: relative;
+  z-index: 1;
+  margin: 14px 0 0;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.progressCard > a {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 10px;
+  color: var(--sage-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pinRow {
+  display: flex;
+  gap: 7px;
+  margin-top: 16px;
+}
+
+.pinRow span {
+  width: 34px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+}
+
+.pinRow span[data-filled="true"] {
+  background: var(--sage-dark);
+}
+
+.wallActions,
+.addActions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.wallActions a,
+.addActions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.wallActions span,
+.addActions span {
+  color: var(--sage-dark);
+  font-size: 17px;
+}
+
+.loading {
+  padding: 36px 12px;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  margin-top: 18px;
+  padding: 44px 24px;
+  border-radius: 26px;
+  background: var(--card);
+  text-align: center;
+}
+
+.empty > span {
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  margin-bottom: 18px;
+  border-radius: 25px 25px 25px 8px;
+  background: var(--rose-light);
+  color: var(--clay);
+  font-size: 28px;
+}
+
+.empty p {
+  max-width: 24em;
+  margin: 8px 0 0;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.wallSection {
+  margin-top: 28px;
+}
+
+.wallSection > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.wallSection > header > span {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.masonry {
+  columns: 2;
+  column-gap: 10px;
+}
+
+.inspirationCard {
+  display: inline-block;
+  width: 100%;
+  margin: 0 0 10px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--card);
+  break-inside: avoid;
+  text-decoration: none;
+}
+
+.cardImage {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--oat);
+}
+
+.cardImage[data-tall="true"] {
+  aspect-ratio: 3 / 4;
+}
+
+.cardImage img {
+  object-fit: cover;
+}
+
+.cardCaption {
+  padding: 10px;
+}
+
+.cardCaption strong {
+  display: block;
+  margin-bottom: 6px;
+  font: 600 14px/1.4 var(--serif);
+}
+
+.cardCaption > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--oat);
+  color: var(--ink-2);
+  font-size: 11px;
+}
+
+.tag i {
+  margin-right: 4px;
+  padding: 0 4px;
+  border-radius: 5px;
+  background: var(--mist-light);
+  color: #5e717c;
+  font-size: 9px;
+  font-style: normal;
+}
+
+.editor {
+  padding-bottom: 24px;
+}
+
+.editorHeading {
+  margin: 6px 0 18px;
+}
+
+.editorHeading > p:last-child {
+  margin: 5px 0 0;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.preview {
+  position: relative;
+  min-height: 310px;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: 26px;
+  background: linear-gradient(145deg, var(--rose-light), var(--oat));
+}
+
+.preview img {
+  object-fit: contain;
+}
+
+.previewEmpty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  height: 100%;
+  padding: 28px;
+  text-align: center;
+}
+
+.previewEmpty > span {
+  margin-bottom: 12px;
+  color: var(--clay);
+  font-size: 34px;
+}
+
+.previewEmpty strong {
+  font: 600 17px/1.5 var(--serif);
+}
+
+.previewEmpty small {
+  margin-top: 5px;
+  color: var(--ink-2);
+}
+
+.photoPicker {
+  margin: 12px 0 16px;
+}
+
+.formCard {
+  min-width: 0;
+  margin: 16px 0 0;
+  padding: 4px 16px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--card);
+}
+
+.field {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  min-height: 61px;
+  border-bottom: 1px solid var(--line);
+}
+
+.field:last-child {
+  border-bottom: 0;
+}
+
+.field > span {
+  font-size: 13px;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 10px 4px;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--ink-2);
+}
+
+.notes {
+  align-items: start;
+  padding-top: 10px;
+}
+
+.hint {
+  margin: 8px 2px 14px;
+  color: var(--ink-2);
+  font-size: 11px;
+}
+
+.primary {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--sage-dark);
+  color: white;
+  font-weight: 700;
+}
+
+.primary:disabled,
+.addActions button:disabled {
+  cursor: default;
+  opacity: .5;
+}
+
+.recreate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: 10px;
+  border: 1px solid var(--sage-dark);
+  border-radius: var(--radius-pill);
+  color: var(--sage-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.analysis {
+  width: 100%;
+  min-height: 46px;
+  margin: 14px 0 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--mist-light);
+  color: #566b76;
+  font: inherit;
+  font-weight: 700;
+}
+.analysis:disabled { opacity: .55; cursor: wait; }
+
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: var(--rose-light);
+  font-size: 12px;
+}
+
+.error button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  padding: 7px 12px;
+}
+
+.saved {
+  margin: 10px 0;
+  color: var(--sage-dark);
+  font-size: 13px;
+}
+
+.saved a {
+  font-weight: 700;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 350px) {
+  .progressCard { padding: 18px; }
+  .wallActions, .addActions { gap: 5px; }
+  .wallActions a, .addActions button { gap: 3px; font-size: 12px; }
+  .field { grid-template-columns: 76px minmax(0, 1fr); }
+}

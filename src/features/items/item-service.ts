@@ -1,10 +1,10 @@
 import "server-only";
-import sharp from "sharp";
 import { z } from "zod";
 import { accessorySubcategories, itemCategories, itemStyles, seasons } from "./item-catalog";
-import { ItemError, type ItemRepository, type OriginalUpload, type VerifiedImage } from "./item-repository";
+import { ItemError, type ItemRepository } from "./item-repository";
 import { pastOrTodayDateSchema } from "./item-validation";
-import { MAX_UPLOAD_BYTES, type StorageProvider } from "../storage/storage-provider";
+import type { StorageProvider } from "../storage/storage-provider";
+import { verifyCompletedImage } from "../storage/verified-image";
 
 const boundedText = (max: number, min = 0) => z.string().trim().refine((value) => [...value].length >= min && [...value].length <= max);
 const unique = <T extends z.ZodType>(schema: T, max: number) => z.array(schema).max(max).refine((values) => new Set(values).size === values.length);
@@ -33,55 +33,6 @@ export function itemResourceId(id: string) {
   if (!z.uuid().safeParse(id).success) throw new ItemError("NOT_FOUND");
   return id;
 }
-function assertStaticPng(bytes: Buffer): void {
-  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-  if (!bytes.subarray(0, 8).equals(signature)) throw new ItemError("INVALID_IMAGE");
-  let offset = 8;
-  let ended = false;
-  while (offset < bytes.length) {
-    // A chunk needs its length, four-byte type, payload and four-byte CRC.
-    const remaining = bytes.length - offset;
-    if (remaining < 12) throw new ItemError("INVALID_IMAGE");
-    const length = bytes.readUInt32BE(offset);
-    if (length > remaining - 12) throw new ItemError("INVALID_IMAGE");
-    const type = bytes.toString("ascii", offset + 4, offset + 8);
-    // libvips can expose only APNG's default image, without metadata.pages.
-    if (type === "acTL" || type === "fcTL" || type === "fdAT") throw new ItemError("INVALID_IMAGE");
-    offset += length + 12;
-    if (ended) throw new ItemError("INVALID_IMAGE");
-    if (type === "IEND") {
-      if (length !== 0) throw new ItemError("INVALID_IMAGE");
-      ended = true;
-    }
-  }
-  if (!ended) throw new ItemError("INVALID_IMAGE");
-}
-async function verifyImage(upload: OriginalUpload, provider: StorageProvider): Promise<VerifiedImage> {
-  const stream = await provider.openObject(upload.objectKey);
-  const reader = stream.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > MAX_UPLOAD_BYTES || size > upload.sizeBytes) throw new ItemError("INVALID_IMAGE");
-      chunks.push(value);
-    }
-    if (size !== upload.sizeBytes) throw new ItemError("INVALID_IMAGE");
-    const bytes = Buffer.concat(chunks);
-    if (upload.contentType === "image/png") assertStaticPng(bytes);
-    const options = { limitInputPixels: 40_000_000, failOn: "warning" as const, animated: true };
-    const metadata = await sharp(bytes, options).metadata();
-    const mime = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" }[metadata.format as string];
-    if (!mime || mime !== upload.contentType || !metadata.width || !metadata.height || metadata.width > 12_000 || metadata.height > 12_000 || metadata.width * metadata.height > 40_000_000 || (metadata.pages ?? 1) !== 1) throw new ItemError("INVALID_IMAGE");
-    // metadata alone accepts truncated files; force the decoder to read all pixels.
-    await sharp(bytes, options).raw().toBuffer();
-    return { ...upload, width: metadata.width, height: metadata.height };
-  } catch { throw new ItemError("INVALID_IMAGE"); }
-  finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
-}
 export type ItemServiceDependencies = { repository: ItemRepository; provider: StorageProvider; today: () => string };
 export function createItemService({ repository, provider, today }: ItemServiceDependencies) {
   return {
@@ -103,7 +54,9 @@ export function createItemService({ repository, provider, today }: ItemServiceDe
       if (item.deletedAt || !["draft", "active"].includes(item.status)) throw new ItemError("ITEM_NOT_EDITABLE");
       const upload = await repository.findCompletedOriginalUpload(userId, uploadId);
       if (!upload) throw new ItemError("NOT_FOUND");
-      const image = await verifyImage(upload, provider);
+      const image = await verifyCompletedImage(upload, provider).catch(() => {
+        throw new ItemError("INVALID_IMAGE");
+      });
       await repository.attachOriginal(userId, id, uploadId, image);
     },
   };
